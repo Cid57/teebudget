@@ -54,8 +54,6 @@ TeeBudget/
 ├── .gitignore           # Fichiers ignorés par Git
 ├── index.html           # Template HTML principal
 ├── package.json         # Dépendances et scripts
-├── postcss.config.js    # Configuration PostCSS
-├── tailwind.config.js   # Configuration Tailwind CSS
 └── vite.config.js       # Configuration Vite
 ```
 
@@ -64,8 +62,8 @@ TeeBudget/
 - **Vue 3** - Framework JavaScript progressif
 - **Vite** - Outil de build ultra-rapide
 - **Pinia** - Gestion d'état
-- **Tailwind CSS** - Framework CSS utilitaire
-- **PostCSS** - Traitement des styles CSS
+- **Bootstrap 5** - Framework CSS
+- **Bootstrap Icons** - Bibliothèque d'icônes CSS
 
 ## Configuration
 
@@ -79,38 +77,51 @@ export default defineConfig({
 });
 ```
 
-### Configuration Tailwind CSS (tailwind.config.js)
+### Fichier principal (main.js)
 ```javascript
-/** @type {import('tailwindcss').Config} */
-import forms from '@tailwindcss/forms';
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import App from './App.vue';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import 'bootstrap-icons/font/bootstrap-icons.css';
+import './style.css';
 
-export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{vue,js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {
-      colors: {
-        primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          // ... autres couleurs
-        },
-      },
-    },
-  },
-  plugins: [forms],
-};
+const app = createApp(App);
+const pinia = createPinia();
+app.use(pinia);
+app.mount('#app');
 ```
 
-### Configuration PostCSS (postcss.config.js)
-```javascript
-export default {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
+## Structure du fichier style.css
+
+Le fichier `style.css` contient les styles de base et les utilitaires personnalisés pour l'application. Il est organisé comme suit :
+
+1. **Variables CSS** : Définition des couleurs et des espacements
+2. **Styles de base** : Styles globaux pour le body, les liens, etc.
+3. **Composants** : Styles pour les cartes, boutons, formulaires, etc.
+4. **Utilitaires** : Classes utilitaires pour la mise en page
+5. **Icônes** : Styles de base pour les icônes Bootstrap
+
+### Exemple d'extrait
+
+```css
+/* Variables */
+:root {
+  --primary: #0d6efd;
+  --secondary: #6c757d;
+  --success: #198754;
+  --danger: #dc3545;
+  --light: #f8f9fa;
+  --dark: #212529;
+}
+
+/* Styles de base */
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+  color: #212529;
+  background-color: #f8f9fa;
 }
 ```
 

@@ -28,8 +28,8 @@
   - [Vue.js 3](https://vuejs.org/) - Framework JavaScript progressif
   - [Vite](https://vitejs.dev/) - Outil de build ultra-rapide
   - [Pinia](https://pinia.vuejs.org/) - Gestion d'état
-  - [Tailwind CSS](https://tailwindcss.com/) - Framework CSS utilitaire
-  - [PostCSS](https://postcss.org/) - Traitement des styles
+  - [Bootstrap 5](https://getbootstrap.com/) - Framework CSS
+  - [Bootstrap Icons](https://icons.getbootstrap.com/) - Bibliothèque d'icônes
 
 ## 🚀 Démarrage rapide
 
