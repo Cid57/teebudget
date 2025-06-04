@@ -706,7 +706,7 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                         :key="category.id"
                         :value="category.id"
                       >
-                        <i class="bi me-2" :class="category.icon"></i>
+                        <!-- <i class="bi me-2" :class="category.icon"></i> -->
                         {{ category.name }}
                       </option>
                     </select>
@@ -847,7 +847,7 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                       :key="category.id"
                       :value="category.id"
                     >
-                      <i class="bi me-2" :class="category.icon"></i>
+                      <!-- <i class="bi me-2" :class="category.icon"></i> -->
                       {{ category.name }}
                     </option>
                   </select>
