@@ -1,35 +1,49 @@
-# TEEBUDGET 💸
+# TEEBUDGET 💰
 
-**TEEBUDGET** est une application personnelle de gestion de budget courant, construite avec **Vue.js** et **Vite**.
+[![Vue.js](https://img.shields.io/badge/Vue.js-3.3.4-4FC08D?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.1.0-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.1-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Pinia](https://img.shields.io/badge/Pinia-2.1.7-FFD02C?logo=pinia&logoColor=white)](https://pinia.vuejs.org/)
 
-## 🚀 Fonctionnalités prévues
+**TEEBUDGET** est une application de gestion de budget personnelle moderne et intuitive, construite avec **Vue 3**, **Vite**, **Pinia** et **Tailwind CSS**.
 
-- Suivi des dépenses mensuelles
-- Catégories personnalisées (courses, logement, loisirs…)
-- Solde actuel du compte courant
-- Statistiques simples par mois
-- Interface simple et rapide
+## ✨ Fonctionnalités
 
-## 🚀 Fonctionnalités principales
+### 🚀 Principales
+- 📊 Suivi des revenus et dépenses en temps réel
+- 🏷️ Catégories personnalisables (alimentation, loyer, loisirs, etc.)
+- 💰 Calcul automatique du solde global
+- 📱 Interface responsive et moderne
+- 💾 Sauvegarde locale des données avec `localStorage`
 
-- 📊 Ajouter des revenus et des dépenses
-- 🏷️ Catégoriser les opérations (loyer, alimentation, salaire, etc.)
-- 💰 Afficher le solde total actuel
-- 🔍 Filtrer les opérations par catégorie ou période
-- 💾 Sauvegarde automatique des données via `localStorage`
-- 📱 Interface responsive
+### 🔄 Gestion des transactions
+- ➕ Ajout rapide de transactions
+- ❌ Suppression facile
+- 🗂️ Filtrage par catégorie et type
+- 📅 Tri chronologique
 
-## 🛠️ Technologies utilisées
+## 🛠️ Technologies
 
-- [Vue.js 3](https://vuejs.org/) — Framework JavaScript moderne
-- [Vite](https://vitejs.dev/) — Outil de build rapide
-- [npm](https://www.npmjs.com/) — Gestionnaire de paquets
-- [LocalStorage](https://developer.mozilla.org/fr/docs/Web/API/Window/localStorage) — Stockage local des données
+- **Frontend**
+  - [Vue.js 3](https://vuejs.org/) - Framework JavaScript progressif
+  - [Vite](https://vitejs.dev/) - Outil de build ultra-rapide
+  - [Pinia](https://pinia.vuejs.org/) - Gestion d'état
+  - [Tailwind CSS](https://tailwindcss.com/) - Framework CSS utilitaire
+  - [PostCSS](https://postcss.org/) - Traitement des styles
 
-## 🚀 Installation
+## 🚀 Démarrage rapide
 
-1. **Télécharger le projet**
-   - Téléchargez et extrayez les fichiers du projet dans un dossier de votre choix
+### Prérequis
+- Node.js 16+ et npm 8+
+- Un navigateur web moderne
+
+### Installation
+
+1. **Cloner le dépôt**
+   ```bash
+   git clone https://github.com/Cid57/teebudget.git
+   cd teebudget
+   ```
 
 2. **Installer les dépendances**
    ```bash
@@ -40,6 +54,7 @@
    ```bash
    npm run dev
    ```
+   L'application sera disponible à l'adresse : http://localhost:5173
 
 4. **Pour la production**
    ```bash
@@ -51,25 +66,36 @@
 
 ```
 src/
-├── assets/         # Fichiers statiques (images, polices)
-├── components/     # Composants Vue.js
-├── App.vue         # Composant racine
-├── main.js         # Point d'entrée de l'application
-└── style.css      # Styles globaux
+├── assets/          # Fichiers statiques (images, polices)
+├── components/      # Composants Vue.js réutilisables
+├── stores/          # Gestion d'état avec Pinia
+│   ├── index.js     # Export des stores
+│   └── useTransactionStore.js  # Store des transactions
+├── App.vue          # Composant racine
+├── main.js          # Point d'entrée de l'application
+└── style.css        # Styles globaux
 ```
 
 ## 📝 Fonctionnalités à venir
 
-- [ ] Graphiques détaillés
-- [ ] Export des données (CSV/PDF)
+- [ ] Graphiques et statistiques avancés
+- [ ] Export/import des données (CSV/JSON)
 - [ ] Synchronisation multi-appareils
-- [ ] Thèmes clair/sombre
+- [ ] Thème sombre/clair
+- [ ] Catégories personnalisables par l'utilisateur
+- [ ] Rapports mensuels/annuels
 
-## 📄 À propos
+## 🤝 Contribution
 
-Application de gestion de budget personnelle créée avec Vue.js et Vite.
+Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
+
+## 📄 Licence
+
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
 ## 🙏 Remerciements
 
-- [Vue.js](https://vuejs.org/) pour ce super framework
-- [Vite](https://vitejs.dev/) pour l'outil de build ultra-rapide
+- [Vue.js](https://vuejs.org/) - Un framework JavaScript incroyablement simple
+- [Vite](https://vitejs.dev/) - Pour une expérience de développement ultra-rapide
+- [Tailwind CSS](https://tailwindcss.com/) - Pour des interfaces modernes et réactives
+- [Pinia](https://pinia.vuejs.org/) - Pour une gestion d'état simple et efficace
