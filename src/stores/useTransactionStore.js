@@ -9,21 +9,21 @@ export const useTransactionStore = defineStore("transactions", () => {
   );
 
   const categories = [
-    { id: 1, name: "Alimentation", type: "expense" },
-    { id: 2, name: "Loyer", type: "expense" },
-    { id: 3, name: "Loisirs", type: "expense" },
-    { id: 4, name: "Salaire", type: "income" },
-    { id: 5, name: "Autre revenu", type: "income" },
-    { id: 6, name: "Transports", type: "expense" },
-    { id: 7, name: "Santé", type: "expense" },
-    { id: 8, name: "Éducation", type: "expense" },
-    { id: 9, name: "Cadeaux", type: "expense" },
-    { id: 10, name: "Voyages", type: "expense" },
-    { id: 11, name: "Investissements", type: "income" },
-    { id: 12, name: "Remboursement", type: "income" },
-    { id: 13, name: "Prime", type: "income" },
-    { id: 14, name: "Aide sociale", type: "income" },
-    { id: 15, name: "Autre", type: "expense" },
+    { id: 1, name: "Alimentation", type: "expense", icon: "bi-basket" },
+    { id: 2, name: "Loyer", type: "expense", icon: "bi-house" },
+    { id: 3, name: "Loisirs", type: "expense", icon: "bi-joystick" },
+    { id: 4, name: "Salaire", type: "income", icon: "bi-wallet" },
+    { id: 5, name: "Autre revenu", type: "income", icon: "bi-cash-stack" },
+    { id: 6, name: "Transports", type: "expense", icon: "bi-car" },
+    { id: 7, name: "Santé", type: "expense", icon: "bi-heart-pulse" },
+    { id: 8, name: "Éducation", type: "expense", icon: "bi-book" },
+    { id: 9, name: "Cadeaux", type: "expense", icon: "bi-gift" },
+    { id: 10, name: "Voyages", type: "expense", icon: "bi-globe" },
+    { id: 11, name: "Investissements", type: "income", icon: "bi-graph-up" },
+    { id: 12, name: "Remboursement", type: "income", icon: "bi-arrow-down-up" },
+    { id: 13, name: "Prime", type: "income", icon: "bi-award" },
+    { id: 14, name: "Aide sociale", type: "income", icon: "bi-people" },
+    { id: 15, name: "Autre", type: "expense", icon: "bi-question-circle" },
   ];
 
   const transactionTypes = [

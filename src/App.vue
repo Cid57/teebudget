@@ -13,6 +13,16 @@ const userStore = useUserStore();
 const isLoading = ref(true);
 const error = ref(null);
 
+// État de recherche et filtrage
+const searchQuery = ref("");
+const filterDate = ref("");
+const filterAmount = ref("");
+const filterCategory = ref("");
+
+// État de tri
+const sortBy = ref("date"); // 'date', 'amount', 'description', 'category'
+const sortOrder = ref("desc"); // 'asc' ou 'desc'
+
 // Initialiser les stores
 onBeforeMount(async () => {
   try {
@@ -175,6 +185,106 @@ const currentExpenses = computed(() =>
 const currentUserTransactions = computed(() =>
   transactionStore.getTransactions(userStore.currentUserId)
 );
+
+// Transactions filtrées et triées
+const filteredAndSortedTransactions = computed(() => {
+  let transactions = currentUserTransactions.value;
+
+  // Filtre par recherche textuelle
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    transactions = transactions.filter(
+      (tx) =>
+        tx.description.toLowerCase().includes(query) ||
+        transactionStore
+          .getCategoryById(tx.categoryId)
+          .name.toLowerCase()
+          .includes(query)
+    );
+  }
+
+  // Filtre par date
+  if (filterDate.value) {
+    const filterDateObj = new Date(filterDate.value);
+    transactions = transactions.filter((tx) => {
+      const txDate = new Date(tx.date);
+      return txDate.toDateString() === filterDateObj.toDateString();
+    });
+  }
+
+  // Filtre par montant
+  if (filterAmount.value) {
+    const amount = parseFloat(filterAmount.value);
+    transactions = transactions.filter((tx) => tx.amount >= amount);
+  }
+
+  // Filtre par catégorie
+  if (filterCategory.value) {
+    transactions = transactions.filter(
+      (tx) => tx.categoryId === parseInt(filterCategory.value)
+    );
+  }
+
+  // Tri
+  return transactions.sort((a, b) => {
+    let comparison = 0;
+    const aValue =
+      sortBy.value === "category"
+        ? transactionStore.getCategoryById(a.categoryId).name
+        : a[sortBy.value];
+    const bValue =
+      sortBy.value === "category"
+        ? transactionStore.getCategoryById(b.categoryId).name
+        : b[sortBy.value];
+
+    if (sortBy.value === "date") {
+      // Comparaison de dates (plus récent en premier par défaut pour 'desc')
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      comparison = dateA - dateB; // Pour trier par date, plus ancienne d'abord
+    } else if (sortBy.value === "amount") {
+      // Comparaison de montants
+      comparison = aValue - bValue; // Pour trier par montant, plus petit d'abord
+    } else {
+      // Comparaison de chaînes (description, catégorie)
+      if (aValue > bValue) comparison = 1;
+      else if (aValue < bValue) comparison = -1;
+    }
+
+    // Appliquer l'ordre (asc/desc)
+    if (sortOrder.value === "desc") {
+      if (sortBy.value === "date" || sortBy.value === "amount") {
+        // Pour date et montant, 'desc' signifie les plus grands en premier
+        return comparison * -1;
+      } else {
+        // Pour les chaînes, 'desc' signifie Z-A
+        return comparison * -1;
+      }
+    } else {
+      // Ordre croissant par défaut (ou A-Z pour les chaînes)
+      return comparison;
+    }
+  });
+});
+
+// Transactions filtrées par type (utilisant filteredAndSortedTransactions)
+const filteredAndSortedIncomeTransactions = computed(() =>
+  filteredAndSortedTransactions.value.filter((tx) => tx.type === "income")
+);
+
+const filteredAndSortedExpenseTransactions = computed(() =>
+  filteredAndSortedTransactions.value.filter((tx) => tx.type === "expense")
+);
+
+// Réinitialiser les filtres et le tri
+function resetFiltersAndSort() {
+  searchQuery.value = "";
+  filterDate.value = "";
+  filterAmount.value = "";
+  filterCategory.value = "";
+  sortBy.value = "date";
+  sortOrder.value = "desc";
+}
 
 // Préparation des données pour le graphique des dépenses par catégorie
 // const chartRef = ref(null);
@@ -394,6 +504,15 @@ const tips = [
   "Utilisez des listes de courses pour éviter les achats inutiles.",
   "Mettez de côté une petite somme dès que vous recevez un revenu.",
   "Révisez votre budget chaque semaine pour rester sur la bonne voie.",
+  // Astuces humoristiques ajoutées
+  "Si vous ne pouvez pas vous le permettre deux fois, vous ne pouvez pas vous le permettre du tout. (Même si ça coûte 2€)",
+  'Mon banquier m\'a dit "vous avez un découvert". J\'ai dit "Merci, je l\'avais pas vu !".',
+  "L'argent ne fait pas le bonheur... mais ça aide à payer les factures. Ce qui est une forme de bonheur.",
+  "Ma stratégie d'épargne : je mets de l'argent de côté pour les jours de pluie. Jusqu'à présent, il n'a jamais plu assez fort.",
+  "Investir dans des chaussettes : c'est le seul endroit où votre argent ne s'en va pas tout seul.",
+  "Je n'ai pas un problème d'argent, j'ai un problème avec le prix des choses.",
+  "Astuce : si vous avez faim, vérifiez d'abord votre frigo. C'est gratuit. Enfin, ça l'était.",
+  "Règle numéro 1 de l'argent : ne perds jamais d'argent. Règle numéro 2 : n'oublie jamais la règle numéro 1.",
 ];
 const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
 </script>
@@ -587,6 +706,7 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                         :key="category.id"
                         :value="category.id"
                       >
+                        <i class="bi me-2" :class="category.icon"></i>
                         {{ category.name }}
                       </option>
                     </select>
@@ -684,74 +804,171 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
         <div class="col-12">
           <div class="card shadow-sm">
             <div class="card-header bg-white py-3">
-              <h2 class="h5 mb-0">
-                <i class="bi bi-list-ul me-2"></i>Historique des transactions
-              </h2>
+              <div
+                class="d-flex justify-content-between align-items-center flex-wrap gap-3"
+              >
+                <h2 class="h5 mb-0">
+                  <i class="bi bi-list-ul me-2"></i>Historique des transactions
+                </h2>
+                <!-- Contrôles de recherche, filtrage et tri -->
+                <div class="d-flex gap-2 flex-wrap">
+                  <div class="input-group" style="min-width: 200px">
+                    <span class="input-group-text bg-light">
+                      <i class="bi bi-search"></i>
+                    </span>
+                    <input
+                      v-model="searchQuery"
+                      type="text"
+                      class="form-control"
+                      placeholder="Rechercher..."
+                    />
+                  </div>
+                  <input
+                    v-model="filterDate"
+                    type="date"
+                    class="form-control"
+                    style="max-width: 150px"
+                  />
+                  <input
+                    v-model="filterAmount"
+                    type="number"
+                    class="form-control"
+                    placeholder="Montant min"
+                    style="max-width: 150px"
+                  />
+                  <select
+                    v-model="filterCategory"
+                    class="form-select"
+                    style="max-width: 200px"
+                  >
+                    <option value="">Toutes catégories</option>
+                    <option
+                      v-for="category in transactionStore.categories"
+                      :key="category.id"
+                      :value="category.id"
+                    >
+                      <i class="bi me-2" :class="category.icon"></i>
+                      {{ category.name }}
+                    </option>
+                  </select>
+
+                  <!-- Contrôles de tri -->
+                  <select
+                    v-model="sortBy"
+                    class="form-select"
+                    style="max-width: 150px"
+                  >
+                    <option value="date">Trier par date</option>
+                    <option value="amount">Trier par montant</option>
+                    <option value="description">Trier par description</option>
+                    <option value="category">Trier par catégorie</option>
+                  </select>
+                  <button
+                    @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+                    class="btn btn-outline-secondary"
+                    :title="
+                      sortOrder === 'asc'
+                        ? 'Trier par ordre décroissant'
+                        : 'Trier par ordre croissant'
+                    "
+                  >
+                    <i
+                      class="bi"
+                      :class="
+                        sortOrder === 'asc' ? 'bi-sort-down' : 'bi-sort-up'
+                      "
+                    ></i>
+                  </button>
+
+                  <button
+                    @click="resetFiltersAndSort"
+                    class="btn btn-outline-secondary"
+                    title="Réinitialiser les filtres"
+                  >
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              </div>
             </div>
             <div class="card-body p-0">
               <!-- État vide -->
               <div
-                v-if="currentUserTransactions.length === 0"
+                v-if="filteredAndSortedTransactions.length === 0"
                 class="text-center py-5"
               >
                 <div class="text-muted">
-                  <i class="bi bi-receipt fs-1 opacity-50"></i>
-                  <p class="mt-2 mb-0">Aucune transaction enregistrée</p>
+                  <i class="bi bi-search fs-1 opacity-50"></i>
+                  <p class="mt-2 mb-0">Aucune transaction trouvée</p>
                   <small class="text-muted"
-                    >Ajoutez votre première transaction pour commencer</small
+                    >Essayez de modifier vos critères de recherche</small
                   >
                 </div>
               </div>
               <!-- Liste des transactions -->
               <div
                 v-if="
-                  incomeTransactions.length > 0 ||
-                  expenseTransactions.length > 0
+                  filteredAndSortedIncomeTransactions.length > 0 ||
+                  filteredAndSortedExpenseTransactions.length > 0
                 "
               >
                 <!-- Revenus -->
-                <div v-if="incomeTransactions.length > 0" class="mb-4">
+                <div
+                  v-if="filteredAndSortedIncomeTransactions.length > 0"
+                  class="mb-4"
+                >
                   <h6 class="text-success fw-semibold mb-3">
-                    <i class="bi bi-arrow-down-circle me-2"></i>Revenus
+                    <i class="bi bi-arrow-down-circle me-3"></i>Revenus
                     <span
-                      class="badge bg-success bg-opacity-10 text-success ms-2"
-                      >{{ incomeTransactions.length }}</span
+                      class="badge bg-success bg-opacity-10 text-success ms-3"
+                      >{{ filteredAndSortedIncomeTransactions.length }}</span
                     >
                   </h6>
                   <ul class="list-group list-group-flush mb-4">
                     <transition-group name="fade" tag="div">
                       <li
-                        v-for="(transaction, idx) in incomeTransactions"
+                        v-for="(
+                          transaction, idx
+                        ) in filteredAndSortedIncomeTransactions"
                         :key="transaction.id"
                         class="list-group-item list-group-item-action"
                         :class="{
                           'border-bottom':
-                            idx !== incomeTransactions.length - 1,
+                            idx !==
+                            filteredAndSortedIncomeTransactions.length - 1,
                         }"
                       >
-                        <div class="d-flex align-items-center">
+                        <div class="d-flex align-items-center w-100">
                           <div
                             class="bg-success bg-opacity-10 text-success rounded-circle p-2 me-3"
                           >
                             <i class="bi bi-arrow-down-circle fs-5"></i>
                           </div>
-                          <div class="flex-grow-1">
+                          <div
+                            class="flex-grow-1 me-3 d-flex flex-column justify-content-center"
+                          >
+                            <h6 class="mb-0 fw-semibold">
+                              {{ transaction.description }}
+                            </h6>
                             <div
-                              class="d-flex justify-content-between align-items-center"
-                            >
-                              <h6 class="mb-0">
-                                {{ transaction.description }}
-                              </h6>
-                              <span class="text-success fw-bold"
-                                >+{{ transaction.amount.toFixed(2) }} €</span
-                              >
-                            </div>
-                            <div
-                              class="d-flex align-items-center text-muted small mt-1"
+                              class="d-flex align-items-center text-muted small gap-2"
                             >
                               <span
-                                class="badge bg-success bg-opacity-10 text-success"
-                                >{{
+                                class="badge"
+                                :class="
+                                  transaction.type === 'income'
+                                    ? 'bg-success bg-opacity-10 text-success'
+                                    : 'bg-danger bg-opacity-10 text-danger'
+                                "
+                              >
+                                <i
+                                  class="bi me-1"
+                                  :class="
+                                    transactionStore.getCategoryById(
+                                      transaction.categoryId
+                                    ).icon
+                                  "
+                                ></i>
+                                {{
                                   transactionStore.getCategoryById(
                                     transaction.categoryId
                                   ).name
@@ -770,61 +987,79 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                               }}</span>
                             </div>
                           </div>
-                          <button
-                            @click="deleteTransaction(transaction.id)"
-                            class="btn btn-sm btn-link text-muted"
-                            title="Supprimer"
-                          >
-                            <i class="bi bi-x-lg"></i>
-                          </button>
+                          <!-- Montant et bouton de suppression -->
+                          <div class="d-flex align-items-center gap-3 ms-auto">
+                            <span class="text-success fw-bold"
+                              >+{{ transaction.amount.toFixed(2) }} €</span
+                            >
+                            <button
+                              @click="deleteTransaction(transaction.id)"
+                              class="btn btn-sm btn-link text-muted p-0"
+                              title="Supprimer"
+                            >
+                              <i class="bi bi-x-lg"></i>
+                            </button>
+                          </div>
                         </div>
                       </li>
                     </transition-group>
                   </ul>
                 </div>
                 <!-- Dépenses -->
-                <div v-if="expenseTransactions.length > 0">
+                <div v-if="filteredAndSortedExpenseTransactions.length > 0">
                   <h6 class="text-danger fw-semibold mb-3">
-                    <i class="bi bi-arrow-up-circle me-2"></i>Dépenses
+                    <i class="bi bi-arrow-up-circle me-3"></i>Dépenses
                     <span
-                      class="badge bg-danger bg-opacity-10 text-danger ms-2"
-                      >{{ expenseTransactions.length }}</span
+                      class="badge bg-danger bg-opacity-10 text-danger ms-3"
+                      >{{ filteredAndSortedExpenseTransactions.length }}</span
                     >
                   </h6>
                   <ul class="list-group list-group-flush">
                     <transition-group name="fade" tag="div">
                       <li
-                        v-for="(transaction, idx) in expenseTransactions"
+                        v-for="(
+                          transaction, idx
+                        ) in filteredAndSortedExpenseTransactions"
                         :key="transaction.id"
                         class="list-group-item list-group-item-action"
                         :class="{
                           'border-bottom':
-                            idx !== expenseTransactions.length - 1,
+                            idx !==
+                            filteredAndSortedExpenseTransactions.length - 1,
                         }"
                       >
-                        <div class="d-flex align-items-center">
+                        <div class="d-flex align-items-center w-100">
                           <div
                             class="bg-danger bg-opacity-10 text-danger rounded-circle p-2 me-3"
                           >
                             <i class="bi bi-arrow-up-circle fs-5"></i>
                           </div>
-                          <div class="flex-grow-1">
+                          <div
+                            class="flex-grow-1 me-3 d-flex flex-column justify-content-center"
+                          >
+                            <h6 class="mb-0 fw-semibold">
+                              {{ transaction.description }}
+                            </h6>
                             <div
-                              class="d-flex justify-content-between align-items-center"
-                            >
-                              <h6 class="mb-0">
-                                {{ transaction.description }}
-                              </h6>
-                              <span class="text-danger fw-bold"
-                                >-{{ transaction.amount.toFixed(2) }} €</span
-                              >
-                            </div>
-                            <div
-                              class="d-flex align-items-center text-muted small mt-1"
+                              class="d-flex align-items-center text-muted small gap-2"
                             >
                               <span
-                                class="badge bg-danger bg-opacity-10 text-danger"
-                                >{{
+                                class="badge"
+                                :class="
+                                  transaction.type === 'income'
+                                    ? 'bg-success bg-opacity-10 text-success'
+                                    : 'bg-danger bg-opacity-10 text-danger'
+                                "
+                              >
+                                <i
+                                  class="bi me-1"
+                                  :class="
+                                    transactionStore.getCategoryById(
+                                      transaction.categoryId
+                                    ).icon
+                                  "
+                                ></i>
+                                {{
                                   transactionStore.getCategoryById(
                                     transaction.categoryId
                                   ).name
@@ -843,13 +1078,19 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                               }}</span>
                             </div>
                           </div>
-                          <button
-                            @click="deleteTransaction(transaction.id)"
-                            class="btn btn-sm btn-link text-muted"
-                            title="Supprimer"
-                          >
-                            <i class="bi bi-x-lg"></i>
-                          </button>
+                          <!-- Montant et bouton de suppression -->
+                          <div class="d-flex align-items-center gap-3 ms-auto">
+                            <span class="text-danger fw-bold"
+                              >-{{ transaction.amount.toFixed(2) }} €</span
+                            >
+                            <button
+                              @click="deleteTransaction(transaction.id)"
+                              class="btn btn-sm btn-link text-muted p-0"
+                              title="Supprimer"
+                            >
+                              <i class="bi bi-x-lg"></i>
+                            </button>
+                          </div>
                         </div>
                       </li>
                     </transition-group>
