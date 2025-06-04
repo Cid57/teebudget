@@ -14,6 +14,16 @@ export const useTransactionStore = defineStore("transactions", () => {
     { id: 3, name: "Loisirs", type: "expense" },
     { id: 4, name: "Salaire", type: "income" },
     { id: 5, name: "Autre revenu", type: "income" },
+    { id: 6, name: "Transports", type: "expense" },
+    { id: 7, name: "Santé", type: "expense" },
+    { id: 8, name: "Éducation", type: "expense" },
+    { id: 9, name: "Cadeaux", type: "expense" },
+    { id: 10, name: "Voyages", type: "expense" },
+    { id: 11, name: "Investissements", type: "income" },
+    { id: 12, name: "Remboursement", type: "income" },
+    { id: 13, name: "Prime", type: "income" },
+    { id: 14, name: "Aide sociale", type: "income" },
+    { id: 15, name: "Autre", type: "expense" },
   ];
 
   const transactionTypes = [
