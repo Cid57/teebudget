@@ -177,84 +177,83 @@ const currentUserTransactions = computed(() =>
 );
 
 // Préparation des données pour le graphique des dépenses par catégorie
-const chartRef = ref(null);
-const chartInstance = ref(null);
+// const chartRef = ref(null);
+// const chartInstance = ref(null);
 
-const expenseByCategory = computed(() => {
-  // On filtre les transactions de type "expense" pour l'utilisateur courant
-  const expenses = transactionStore.getTransactionsByType(
-    userStore.currentUserId,
-    "expense"
-  );
-  const result = {};
-  expenses.forEach((tx) => {
-    const cat = transactionStore.getCategoryById(tx.categoryId).name;
-    if (!result[cat]) result[cat] = 0;
-    result[cat] += tx.amount;
-  });
-  return result;
-});
+// const expenseByCategory = computed(() => {
+//   // On filtre les transactions de type "expense" pour l'utilisateur courant
+//   const expenses = transactionStore.getTransactionsByType(
+//     userStore.currentUserId,
+//     "expense"
+//   );
+//   const result = {};
+//   expenses.forEach((tx) => {
+//     const cat = transactionStore.getCategoryById(tx.categoryId).name;
+//     if (!result[cat]) result[cat] = 0;
+//     result[cat] += tx.amount;
+//   });
+//   return result;
+// });
 
-onMounted(() => {
-  // Création du graphique au montage du composant
-  if (chartRef.value) {
-    createOrUpdateChart();
-  }
-});
+// onMounted(() => {
+//   if (chartRef.value) {
+//     createOrUpdateChart();
+//   }
+// });
 
-// Met à jour le graphique quand les données changent
-watch(expenseByCategory, () => {
-  createOrUpdateChart();
-});
+// // Met à jour le graphique quand les données changent
+// watch(expenseByCategory, () => {
+//   createOrUpdateChart();
+// });
 
-function createOrUpdateChart() {
-  if (!chartRef.value) return;
-  if (chartInstance.value) {
-    chartInstance.value.destroy();
-  }
-  const data = expenseByCategory.value;
-  chartInstance.value = new Chart(chartRef.value, {
-    type: "doughnut",
-    data: {
-      labels: Object.keys(data),
-      datasets: [
-        {
-          data: Object.values(data),
-          backgroundColor: [
-            "#4f46e5",
-            "#10b981",
-            "#f59e42",
-            "#ef4444",
-            "#6366f1",
-            "#fbbf24",
-            "#14b8a6",
-            "#e11d48",
-            "#a21caf",
-            "#f472b6",
-            "#22d3ee",
-            "#fde68a",
-            "#f87171",
-            "#34d399",
-            "#818cf8",
-          ],
-        },
-      ],
-    },
-    options: {
-      plugins: {
-        legend: {
-          display: true,
-          position: "bottom",
-        },
-        title: {
-          display: true,
-          text: "Répartition des dépenses par catégorie",
-          font: { size: 18 },
-        },
-      },
-    },
-  });
-}
+// function createOrUpdateChart() {
+//   if (!chartRef.value) return;
+//   if (chartInstance.value) {
+//     chartInstance.value.destroy();
+//   }
+//   const data = expenseByCategory.value;
+//   chartInstance.value = new Chart(chartRef.value, {
+//     type: "doughnut",
+//     data: {
+//       labels: Object.keys(data),
+//       datasets: [
+//         {
+//           data: Object.values(data),
+//           backgroundColor: [
+//             "#4f46e5",
+//             "#10b981",
+//             "#f59e42",
+//             "#ef4444",
+//             "#6366f1",
+//             "#fbbf24",
+//             "#14b8a6",
+//             "#e11d48",
+//             "#a21caf",
+//             "#f472b6",
+//             "#22d3ee",
+//             "#fde68a",
+//             "#f87171",
+//             "#34d399",
+//             "#818cf8",
+//           ],
+//         },
+//       ],
+//     },
+//     options: {
+//       plugins: {
+//         legend: {
+//           display: true,
+//           position: "bottom",
+//         },
+//         title: {
+//           display: true,
+//           text: "Répartition des dépenses par catégorie",
+//           font: { size: 18 },
+//         },
+//       },
+//     },
+//   });
+// }
 
 const showModal = ref(false);
 function openModal() {
@@ -358,6 +357,45 @@ const encouragement = computed(() => {
     return "Félicitations, vous avez économisé plus que le mois dernier ! 🏆";
   return "";
 });
+
+// Animation compteur sur le solde
+const animatedBalance = ref(0);
+watch(
+  currentBalance,
+  (newVal, oldVal) => {
+    let start = oldVal ?? 0;
+    let end = newVal;
+    let duration = 700;
+    let startTime = null;
+    function animate(ts) {
+      if (!startTime) startTime = ts;
+      const progress = Math.min((ts - startTime) / duration, 1);
+      animatedBalance.value = start + (end - start) * progress;
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        animatedBalance.value = end;
+      }
+    }
+    requestAnimationFrame(animate);
+  },
+  { immediate: true }
+);
+
+// Astuce budgétaire aléatoire
+const tips = [
+  "Notez toutes vos dépenses, même les plus petites.",
+  "Fixez-vous un objectif d'épargne chaque mois.",
+  "Comparez les prix avant chaque achat important.",
+  "Évitez les achats impulsifs, attendez 24h avant de décider.",
+  "Privilégiez les paiements en espèces pour mieux contrôler vos dépenses.",
+  "Analysez vos abonnements et supprimez ceux que vous n'utilisez pas.",
+  "Préparez vos repas à la maison pour économiser.",
+  "Utilisez des listes de courses pour éviter les achats inutiles.",
+  "Mettez de côté une petite somme dès que vous recevez un revenu.",
+  "Révisez votre budget chaque semaine pour rester sur la bonne voie.",
+];
+const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
 </script>
 
 <template>
@@ -398,10 +436,14 @@ const encouragement = computed(() => {
         </div>
       </header>
 
-      <div class="row g-4">
-        <!-- Carte de solde modernisée et centrée -->
-        <div class="col-md-4 d-flex align-items-center justify-content-center">
-          <div class="card h-100 shadow-sm w-100" style="max-width: 400px">
+      <!-- Première ligne : Solde et Formulaire d'ajout -->
+      <div class="row g-4 mb-4">
+        <!-- Carte de solde -->
+        <div class="col-md-4">
+          <div
+            class="card h-100 shadow-sm w-100"
+            style="max-width: 400px; margin: 0 auto"
+          >
             <div
               class="card-body d-flex flex-column align-items-center justify-content-center text-center p-4"
             >
@@ -443,7 +485,7 @@ const encouragement = computed(() => {
                       'text-danger': currentBalance < 0,
                     }"
                     style="font-size: 2.8rem; font-weight: bold"
-                    >{{ currentBalance.toFixed(2) }}</span
+                    >{{ animatedBalance.toFixed(2) }}</span
                   >
                   <span
                     :class="{
@@ -489,7 +531,7 @@ const encouragement = computed(() => {
 
         <!-- Formulaire d'ajout -->
         <div class="col-md-8">
-          <div class="card h-100 shadow-sm">
+          <div class="card h-100 shadow-sm p-4">
             <div class="card-body">
               <h2 class="h5 fw-semibold mb-4">Nouvelle transaction</h2>
               <form @submit.prevent="addTransaction">
@@ -561,218 +603,31 @@ const encouragement = computed(() => {
           </div>
         </div>
       </div>
-      <!-- Fin de la première rangée -->
 
-      <!-- Liste des transactions -->
-      <div class="row mt-4">
-        <div class="col-12">
-          <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
-              <h2 class="h5 mb-0">
-                <i class="bi bi-list-ul me-2"></i>Historique des transactions
-              </h2>
-            </div>
-            <div class="card-body p-0">
-              <!-- État vide -->
-              <div
-                v-if="currentUserTransactions.length === 0"
-                class="text-center py-5"
-              >
-                <div class="text-muted">
-                  <i class="bi bi-receipt fs-1 opacity-50"></i>
-                  <p class="mt-2 mb-0">Aucune transaction enregistrée</p>
-                  <small class="text-muted"
-                    >Ajoutez votre première transaction pour commencer</small
-                  >
-                </div>
-              </div>
-
-              <!-- Liste des transactions -->
-              <div
-                v-if="
-                  incomeTransactions.length > 0 ||
-                  expenseTransactions.length > 0
-                "
-              >
-                <!-- Revenus -->
-                <div v-if="incomeTransactions.length > 0" class="mb-4">
-                  <h6 class="text-success fw-semibold mb-3">
-                    <i class="bi bi-arrow-down-circle me-2"></i>Revenus
-                    <span
-                      class="badge bg-success bg-opacity-10 text-success ms-2"
-                      >{{ incomeTransactions.length }}</span
-                    >
-                  </h6>
-                  <ul class="list-group list-group-flush mb-4">
-                    <transition-group name="fade" tag="div">
-                      <li
-                        v-for="(transaction, idx) in incomeTransactions"
-                        :key="transaction.id"
-                        class="list-group-item list-group-item-action"
-                        :class="{
-                          'border-bottom':
-                            idx !== incomeTransactions.length - 1,
-                        }"
-                      >
-                        <div class="d-flex align-items-center">
-                          <div
-                            class="bg-success bg-opacity-10 text-success rounded-circle p-2 me-3"
-                          >
-                            <i class="bi bi-arrow-down-circle fs-5"></i>
-                          </div>
-                          <div class="flex-grow-1">
-                            <div
-                              class="d-flex justify-content-between align-items-center"
-                            >
-                              <h6 class="mb-0">
-                                {{ transaction.description }}
-                              </h6>
-                              <span class="text-success fw-bold">
-                                +{{ transaction.amount.toFixed(2) }} €
-                              </span>
-                            </div>
-                            <div
-                              class="d-flex align-items-center text-muted small mt-1"
-                            >
-                              <span
-                                class="badge bg-success bg-opacity-10 text-success"
-                              >
-                                {{
-                                  transactionStore.getCategoryById(
-                                    transaction.categoryId
-                                  ).name
-                                }}
-                              </span>
-                              <span class="mx-2">•</span>
-                              <span>{{
-                                new Date(transaction.date).toLocaleDateString(
-                                  "fr-FR",
-                                  {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  }
-                                )
-                              }}</span>
-                            </div>
-                          </div>
-                          <button
-                            @click="deleteTransaction(transaction.id)"
-                            class="btn btn-sm btn-link text-muted"
-                            title="Supprimer"
-                          >
-                            <i class="bi bi-x-lg"></i>
-                          </button>
-                        </div>
-                      </li>
-                    </transition-group>
-                  </ul>
-                </div>
-
-                <!-- Dépenses -->
-                <div v-if="expenseTransactions.length > 0">
-                  <h6 class="text-danger fw-semibold mb-3">
-                    <i class="bi bi-arrow-up-circle me-2"></i>Dépenses
-                    <span
-                      class="badge bg-danger bg-opacity-10 text-danger ms-2"
-                      >{{ expenseTransactions.length }}</span
-                    >
-                  </h6>
-                  <ul class="list-group list-group-flush">
-                    <transition-group name="fade" tag="div">
-                      <li
-                        v-for="(transaction, idx) in expenseTransactions"
-                        :key="transaction.id"
-                        class="list-group-item list-group-item-action"
-                        :class="{
-                          'border-bottom':
-                            idx !== expenseTransactions.length - 1,
-                        }"
-                      >
-                        <div class="d-flex align-items-center">
-                          <div
-                            class="bg-danger bg-opacity-10 text-danger rounded-circle p-2 me-3"
-                          >
-                            <i class="bi bi-arrow-up-circle fs-5"></i>
-                          </div>
-                          <div class="flex-grow-1">
-                            <div
-                              class="d-flex justify-content-between align-items-center"
-                            >
-                              <h6 class="mb-0">
-                                {{ transaction.description }}
-                              </h6>
-                              <span class="text-danger fw-bold">
-                                -{{ transaction.amount.toFixed(2) }} €
-                              </span>
-                            </div>
-                            <div
-                              class="d-flex align-items-center text-muted small mt-1"
-                            >
-                              <span
-                                class="badge bg-danger bg-opacity-10 text-danger"
-                              >
-                                {{
-                                  transactionStore.getCategoryById(
-                                    transaction.categoryId
-                                  ).name
-                                }}
-                              </span>
-                              <span class="mx-2">•</span>
-                              <span>{{
-                                new Date(transaction.date).toLocaleDateString(
-                                  "fr-FR",
-                                  {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  }
-                                )
-                              }}</span>
-                            </div>
-                          </div>
-                          <button
-                            @click="deleteTransaction(transaction.id)"
-                            class="btn btn-sm btn-link text-muted"
-                            title="Supprimer"
-                          >
-                            <i class="bi bi-x-lg"></i>
-                          </button>
-                        </div>
-                      </li>
-                    </transition-group>
-                  </ul>
-                </div>
-              </div>
-
-              <!-- État vide -->
-              <div v-else class="text-center py-5">
-                <div class="text-muted">
-                  <i class="bi bi-receipt fs-1 opacity-50"></i>
-                  <p class="mt-2 mb-0">Aucune transaction enregistrée</p>
-                  <small class="text-muted"
-                    >Ajoutez votre première transaction pour commencer</small
-                  >
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Après la carte de solde, j'ajoute le graphique -->
-      <div class="row justify-content-center my-4">
-        <div class="col-md-6">
-          <div class="card p-4">
+      <!-- Deuxième ligne : Graphiques -->
+      <!-- <div class="row g-4 mb-4">
+        <div class="col-md-12">
+          <div class="card p-4 h-100">
             <canvas ref="chartRef" height="220"></canvas>
           </div>
         </div>
-      </div>
+      </div> -->
 
-      <!-- Résumé mensuel dynamique -->
-      <div class="row justify-content-center my-4">
-        <div class="col-md-8">
-          <div class="card p-4 text-center">
+      <!-- Troisième ligne : Astuce du jour et Résumé mensuel -->
+      <div class="row g-4 mb-4 justify-content-center">
+        <!-- Astuce du jour -->
+        <div class="col-md-6">
+          <div
+            class="alert alert-info text-center h-100 d-flex flex-column justify-content-center mb-0"
+            style="font-size: 1.05rem"
+          >
+            <i class="bi bi-lightbulb me-2"></i>
+            <strong>Astuce du jour :</strong> {{ tipOfTheDay }}
+          </div>
+        </div>
+        <!-- Résumé mensuel dynamique -->
+        <div class="col-md-6">
+          <div class="card p-4 text-center h-100 mb-0">
             <div
               class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2"
             >
@@ -820,6 +675,198 @@ const encouragement = computed(() => {
                 {{ encouragement }}
               </div>
             </transition>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quatrième ligne : Liste des transactions -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+              <h2 class="h5 mb-0">
+                <i class="bi bi-list-ul me-2"></i>Historique des transactions
+              </h2>
+            </div>
+            <div class="card-body p-0">
+              <!-- État vide -->
+              <div
+                v-if="currentUserTransactions.length === 0"
+                class="text-center py-5"
+              >
+                <div class="text-muted">
+                  <i class="bi bi-receipt fs-1 opacity-50"></i>
+                  <p class="mt-2 mb-0">Aucune transaction enregistrée</p>
+                  <small class="text-muted"
+                    >Ajoutez votre première transaction pour commencer</small
+                  >
+                </div>
+              </div>
+              <!-- Liste des transactions -->
+              <div
+                v-if="
+                  incomeTransactions.length > 0 ||
+                  expenseTransactions.length > 0
+                "
+              >
+                <!-- Revenus -->
+                <div v-if="incomeTransactions.length > 0" class="mb-4">
+                  <h6 class="text-success fw-semibold mb-3">
+                    <i class="bi bi-arrow-down-circle me-2"></i>Revenus
+                    <span
+                      class="badge bg-success bg-opacity-10 text-success ms-2"
+                      >{{ incomeTransactions.length }}</span
+                    >
+                  </h6>
+                  <ul class="list-group list-group-flush mb-4">
+                    <transition-group name="fade" tag="div">
+                      <li
+                        v-for="(transaction, idx) in incomeTransactions"
+                        :key="transaction.id"
+                        class="list-group-item list-group-item-action"
+                        :class="{
+                          'border-bottom':
+                            idx !== incomeTransactions.length - 1,
+                        }"
+                      >
+                        <div class="d-flex align-items-center">
+                          <div
+                            class="bg-success bg-opacity-10 text-success rounded-circle p-2 me-3"
+                          >
+                            <i class="bi bi-arrow-down-circle fs-5"></i>
+                          </div>
+                          <div class="flex-grow-1">
+                            <div
+                              class="d-flex justify-content-between align-items-center"
+                            >
+                              <h6 class="mb-0">
+                                {{ transaction.description }}
+                              </h6>
+                              <span class="text-success fw-bold"
+                                >+{{ transaction.amount.toFixed(2) }} €</span
+                              >
+                            </div>
+                            <div
+                              class="d-flex align-items-center text-muted small mt-1"
+                            >
+                              <span
+                                class="badge bg-success bg-opacity-10 text-success"
+                                >{{
+                                  transactionStore.getCategoryById(
+                                    transaction.categoryId
+                                  ).name
+                                }}</span
+                              >
+                              <span class="mx-2">•</span>
+                              <span>{{
+                                new Date(transaction.date).toLocaleDateString(
+                                  "fr-FR",
+                                  {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  }
+                                )
+                              }}</span>
+                            </div>
+                          </div>
+                          <button
+                            @click="deleteTransaction(transaction.id)"
+                            class="btn btn-sm btn-link text-muted"
+                            title="Supprimer"
+                          >
+                            <i class="bi bi-x-lg"></i>
+                          </button>
+                        </div>
+                      </li>
+                    </transition-group>
+                  </ul>
+                </div>
+                <!-- Dépenses -->
+                <div v-if="expenseTransactions.length > 0">
+                  <h6 class="text-danger fw-semibold mb-3">
+                    <i class="bi bi-arrow-up-circle me-2"></i>Dépenses
+                    <span
+                      class="badge bg-danger bg-opacity-10 text-danger ms-2"
+                      >{{ expenseTransactions.length }}</span
+                    >
+                  </h6>
+                  <ul class="list-group list-group-flush">
+                    <transition-group name="fade" tag="div">
+                      <li
+                        v-for="(transaction, idx) in expenseTransactions"
+                        :key="transaction.id"
+                        class="list-group-item list-group-item-action"
+                        :class="{
+                          'border-bottom':
+                            idx !== expenseTransactions.length - 1,
+                        }"
+                      >
+                        <div class="d-flex align-items-center">
+                          <div
+                            class="bg-danger bg-opacity-10 text-danger rounded-circle p-2 me-3"
+                          >
+                            <i class="bi bi-arrow-up-circle fs-5"></i>
+                          </div>
+                          <div class="flex-grow-1">
+                            <div
+                              class="d-flex justify-content-between align-items-center"
+                            >
+                              <h6 class="mb-0">
+                                {{ transaction.description }}
+                              </h6>
+                              <span class="text-danger fw-bold"
+                                >-{{ transaction.amount.toFixed(2) }} €</span
+                              >
+                            </div>
+                            <div
+                              class="d-flex align-items-center text-muted small mt-1"
+                            >
+                              <span
+                                class="badge bg-danger bg-opacity-10 text-danger"
+                                >{{
+                                  transactionStore.getCategoryById(
+                                    transaction.categoryId
+                                  ).name
+                                }}</span
+                              >
+                              <span class="mx-2">•</span>
+                              <span>{{
+                                new Date(transaction.date).toLocaleDateString(
+                                  "fr-FR",
+                                  {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  }
+                                )
+                              }}</span>
+                            </div>
+                          </div>
+                          <button
+                            @click="deleteTransaction(transaction.id)"
+                            class="btn btn-sm btn-link text-muted"
+                            title="Supprimer"
+                          >
+                            <i class="bi bi-x-lg"></i>
+                          </button>
+                        </div>
+                      </li>
+                    </transition-group>
+                  </ul>
+                </div>
+              </div>
+              <!-- État vide -->
+              <div v-else class="text-center py-5">
+                <div class="text-muted">
+                  <i class="bi bi-receipt fs-1 opacity-50"></i>
+                  <p class="mt-2 mb-0">Aucune transaction enregistrée</p>
+                  <small class="text-muted"
+                    >Ajoutez votre première transaction pour commencer</small
+                  >
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
