@@ -523,7 +523,7 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
       <!-- En-tête -->
       <header class="text-center mb-5">
         <div
-          class="d-flex justify-content-center align-items-center mb-3 gap-3"
+          class="d-flex justify-content-center align-items-center mb-4 gap-3"
         >
           <div
             :style="{ backgroundColor: userStore.currentUser.color }"
@@ -534,11 +534,24 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
           </div>
         </div>
         <h1 class="display-5 fw-bold mb-2">TeeBudget</h1>
-        <p class="lead text-primary mb-1">Votre budget, votre liberté.</p>
-        <p class="text-muted">Gérez facilement votre budget à plusieurs</p>
+        <p class="lead text-primary mb-3">Votre budget, votre liberté.</p>
+        <p class="text-muted mb-4">Gérez facilement votre budget à plusieurs</p>
+
+        <!-- Message de bienvenue personnalisé -->
+        <div class="mt-0 mb-5" v-if="userStore.currentUser">
+          <p class="h5 mb-0">
+            Bienvenue,
+            <span
+              :style="{ color: userStore.currentUser.color }"
+              class="fw-semibold"
+              >{{ userStore.currentUser.name }}</span
+            >
+            !
+          </p>
+        </div>
 
         <!-- Sélecteur d'utilisateur -->
-        <div class="btn-group mt-3" role="group">
+        <div class="btn-group mt-0" role="group">
           <button
             v-for="user in userStore.users"
             :key="user.id"
