@@ -1,3 +1,22 @@
+# TeeBudget
+
+Gérez votre budget en toute simplicité avec TeeBudget, l’app moderne et intuitive pour tous.
+
+## Fonctionnalités clés
+
+- Suivi en temps réel de vos revenus et dépenses
+- Catégories personnalisables
+- Dashboard visuel et graphique
+- Ajout rapide de transactions (bouton flottant)
+- Mode sombre/clair
+- Interface responsive et élégante
+
+## Pourquoi TeeBudget ?
+
+TeeBudget est conçu pour être simple, rapide et agréable à utiliser. Visualisez votre budget, prenez de meilleures décisions et atteignez vos objectifs financiers sans effort.
+
+![screenshot](./assets/screenshot.png)
+
 # TEEBUDGET 💰
 
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.3.4-4FC08D?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
@@ -10,6 +29,7 @@
 ## ✨ Fonctionnalités
 
 ### 🚀 Principales
+
 - 📊 Suivi des revenus et dépenses en temps réel
 - 🏷️ Catégories personnalisables (alimentation, loyer, loisirs, etc.)
 - 💰 Calcul automatique du solde global
@@ -17,6 +37,7 @@
 - 💾 Sauvegarde locale des données avec `localStorage`
 
 ### 🔄 Gestion des transactions
+
 - ➕ Ajout rapide de transactions
 - ❌ Suppression facile
 - 🗂️ Filtrage par catégorie et type
@@ -34,26 +55,31 @@
 ## 🚀 Démarrage rapide
 
 ### Prérequis
+
 - Node.js 16+ et npm 8+
 - Un navigateur web moderne
 
 ### Installation
 
 1. **Cloner le dépôt**
+
    ```bash
    git clone https://github.com/Cid57/teebudget.git
    cd teebudget
    ```
 
 2. **Installer les dépendances**
+
    ```bash
    npm install
    ```
 
 3. **Lancer le serveur de développement**
+
    ```bash
    npm run dev
    ```
+
    L'application sera disponible à l'adresse : http://localhost:5173
 
 4. **Pour la production**

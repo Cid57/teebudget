@@ -3,6 +3,8 @@ import { ref, onMounted, computed, onBeforeMount, watch } from "vue";
 import { useTransactionStore } from "./stores/useTransactionStore.js";
 import { useUserStore } from "./stores/useUserStore.js";
 import Chart from "chart.js/auto";
+import AppHeader from "./components/AppHeader.vue";
+import BudgetChart from "./components/BudgetChart.vue";
 
 console.log("Démarrage du composant App.vue");
 
@@ -287,84 +289,46 @@ function resetFiltersAndSort() {
 }
 
 // Préparation des données pour le graphique des dépenses par catégorie
-// const chartRef = ref(null);
-// const chartInstance = ref(null);
+const chartData = computed(() => {
+  // On filtre les transactions de type "expense" pour l'utilisateur courant
+  const expenses = transactionStore.getTransactionsByType(
+    userStore.currentUserId,
+    "expense"
+  );
+  const result = {};
+  expenses.forEach((tx) => {
+    const cat = transactionStore.getCategoryById(tx.categoryId).name;
+    if (!result[cat]) result[cat] = 0;
+    result[cat] += tx.amount;
+  });
+  const labels = Object.keys(result);
+  const values = Object.values(result);
+  // Palette moderne
+  const colors = [
+    "#4f46e5",
+    "#10b981",
+    "#f59e42",
+    "#ef4444",
+    "#6366f1",
+    "#fbbf24",
+    "#14b8a6",
+    "#e11d48",
+    "#a21caf",
+    "#f472b6",
+    "#22d3ee",
+    "#fde68a",
+    "#f87171",
+    "#34d399",
+    "#818cf8",
+  ];
+  return {
+    labels,
+    values,
+    colors: labels.map((_, i) => colors[i % colors.length]),
+  };
+});
 
-// const expenseByCategory = computed(() => {
-//   // On filtre les transactions de type "expense" pour l'utilisateur courant
-//   const expenses = transactionStore.getTransactionsByType(
-//     userStore.currentUserId,
-//     "expense"
-//   );
-//   const result = {};
-//   expenses.forEach((tx) => {
-//     const cat = transactionStore.getCategoryById(tx.categoryId).name;
-//     if (!result[cat]) result[cat] = 0;
-//     result[cat] += tx.amount;
-//   });
-//   return result;
-// });
-
-// onMounted(() => {
-//   if (chartRef.value) {
-//     createOrUpdateChart();
-//   }
-// });
-
-// // Met à jour le graphique quand les données changent
-// watch(expenseByCategory, () => {
-//   createOrUpdateChart();
-// });
-
-// function createOrUpdateChart() {
-//   if (!chartRef.value) return;
-//   if (chartInstance.value) {
-//     chartInstance.value.destroy();
-//   }
-//   const data = expenseByCategory.value;
-//   chartInstance.value = new Chart(chartRef.value, {
-//     type: "doughnut",
-//     data: {
-//       labels: Object.keys(data),
-//       datasets: [
-//         {
-//           data: Object.values(data),
-//           backgroundColor: [
-//             "#4f46e5",
-//             "#10b981",
-//             "#f59e42",
-//             "#ef4444",
-//             "#6366f1",
-//             "#fbbf24",
-//             "#14b8a6",
-//             "#e11d48",
-//             "#a21caf",
-//             "#f472b6",
-//             "#22d3ee",
-//             "#fde68a",
-//             "#f87171",
-//             "#34d399",
-//             "#818cf8",
-//           ],
-//         },
-//       ],
-//     },
-//     options: {
-//       plugins: {
-//         legend: {
-//           display: true,
-//           position: "bottom",
-//         },
-//         title: {
-//           display: true,
-//           text: "Répartition des dépenses par catégorie",
-//           font: { size: 18 },
-//         },
-//       },
-//     },
-//   });
-// }
-
+// Modal pour ajout rapide de transaction
 const showModal = ref(false);
 function openModal() {
   showModal.value = true;
@@ -515,654 +479,777 @@ const tips = [
   "Règle numéro 1 de l'argent : ne perds jamais d'argent. Règle numéro 2 : n'oublie jamais la règle numéro 1.",
 ];
 const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
+
+const isDark = ref(false);
+function toggleDark() {
+  isDark.value = !isDark.value;
+  document.body.classList.toggle("dark", isDark.value);
+}
 </script>
 
 <template>
-  <div class="min-vh-100 bg-light py-4">
-    <div class="container">
-      <!-- En-tête -->
-      <header class="text-center mb-5">
-        <div
-          class="d-flex justify-content-center align-items-center mb-4 gap-3"
-        >
+  <div :class="{ dark: isDark }">
+    <AppHeader @toggle-dark="toggleDark" />
+    <div class="min-vh-100 bg-light py-4">
+      <div class="container">
+        <!-- En-tête -->
+        <header class="text-center mb-5">
           <div
-            :style="{ backgroundColor: userStore.currentUser.color }"
-            class="text-white p-3 rounded-3 shadow-sm d-flex align-items-center justify-content-center"
-            style="width: 60px; height: 60px; font-size: 2rem"
-          >
-            <i class="bi bi-people-fill"></i>
-          </div>
-        </div>
-        <h1 class="display-5 fw-bold mb-2">TeeBudget</h1>
-        <p class="lead text-primary mb-3">Votre budget, votre liberté.</p>
-        <p class="text-muted mb-4">Gérez facilement votre budget à plusieurs</p>
-
-        <!-- Message de bienvenue personnalisé -->
-        <div class="mt-0 mb-5" v-if="userStore.currentUser">
-          <p class="h5 mb-0">
-            Bienvenue,
-            <span
-              :style="{ color: userStore.currentUser.color }"
-              class="fw-semibold"
-              >{{ userStore.currentUser.name }}</span
-            >
-            !
-          </p>
-        </div>
-
-        <!-- Sélecteur d'utilisateur -->
-        <div class="btn-group mt-0" role="group">
-          <button
-            v-for="user in userStore.users"
-            :key="user.id"
-            @click="switchUser(user.id)"
-            class="btn"
-            :class="
-              userStore.currentUserId === user.id
-                ? 'btn-primary'
-                : 'btn-outline-primary'
-            "
-          >
-            {{ user.name }}
-          </button>
-        </div>
-      </header>
-
-      <!-- Première ligne : Solde et Formulaire d'ajout -->
-      <div class="row g-4 mb-4">
-        <!-- Carte de solde -->
-        <div class="col-md-4">
-          <div
-            class="card h-100 shadow-sm w-100"
-            style="max-width: 400px; margin: 0 auto"
+            class="d-flex justify-content-center align-items-center mb-4 gap-3"
           >
             <div
-              class="card-body d-flex flex-column align-items-center justify-content-center text-center p-4"
+              :style="{ backgroundColor: userStore.currentUser.color }"
+              class="text-white p-3 rounded-3 shadow-sm d-flex align-items-center justify-content-center"
+              style="width: 60px; height: 60px; font-size: 2rem"
+            >
+              <i class="bi bi-people-fill"></i>
+            </div>
+          </div>
+          <h1 class="display-5 fw-bold mb-2">TeeBudget</h1>
+          <p class="lead text-primary mb-3">Votre budget, votre liberté.</p>
+          <p class="text-muted mb-4">
+            Gérez facilement votre budget à plusieurs
+          </p>
+
+          <!-- Message de bienvenue personnalisé -->
+          <div class="mt-0 mb-5" v-if="userStore.currentUser">
+            <p class="h5 mb-0">
+              Bienvenue,
+              <span
+                :style="{ color: userStore.currentUser.color }"
+                class="fw-semibold"
+                >{{ userStore.currentUser.name }}</span
+              >
+              !
+            </p>
+          </div>
+
+          <!-- Sélecteur d'utilisateur -->
+          <div class="btn-group mt-0" role="group">
+            <button
+              v-for="user in userStore.users"
+              :key="user.id"
+              @click="switchUser(user.id)"
+              class="btn"
+              :class="
+                userStore.currentUserId === user.id
+                  ? 'btn-primary'
+                  : 'btn-outline-primary'
+              "
+            >
+              {{ user.name }}
+            </button>
+          </div>
+        </header>
+
+        <!-- Première ligne : Solde et Formulaire d'ajout -->
+        <div class="row g-4 mb-4">
+          <!-- Carte de solde -->
+          <div class="col-md-4">
+            <div
+              class="card h-100 shadow-sm w-100"
+              style="max-width: 400px; margin: 0 auto"
             >
               <div
-                class="d-flex justify-content-between align-items-center w-100 mb-3"
-              >
-                <h2 class="h6 text-muted mb-0 text-start">
-                  Solde de {{ userStore.currentUser.name }}
-                </h2>
-                <i
-                  class="bi bi-person-circle"
-                  :style="{
-                    color: userStore.currentUser.color,
-                    fontSize: '1.5rem',
-                  }"
-                ></i>
-              </div>
-              <div
-                class="d-flex flex-column align-items-center justify-content-center w-100 mb-3"
+                class="card-body d-flex flex-column align-items-center justify-content-center text-center p-4"
               >
                 <div
-                  class="d-flex align-items-center justify-content-center gap-3 w-100"
+                  class="d-flex justify-content-between align-items-center w-100 mb-3"
                 >
+                  <h2 class="h6 text-muted mb-0 text-start">
+                    Solde de {{ userStore.currentUser.name }}
+                  </h2>
                   <i
-                    class="bi"
-                    :class="
-                      currentBalance >= 0
-                        ? 'bi-graph-up-arrow'
-                        : 'bi-graph-down-arrow'
-                    "
+                    class="bi bi-person-circle"
                     :style="{
-                      fontSize: '2.5rem',
-                      color: currentBalance >= 0 ? '#10b981' : '#ef4444',
+                      color: userStore.currentUser.color,
+                      fontSize: '1.5rem',
                     }"
                   ></i>
-                  <span
-                    :class="{
-                      'text-success': currentBalance >= 0,
-                      'text-danger': currentBalance < 0,
-                    }"
-                    style="font-size: 2.8rem; font-weight: bold"
-                    >{{ animatedBalance.toFixed(2) }}</span
-                  >
-                  <span
-                    :class="{
-                      'text-success': currentBalance >= 0,
-                      'text-danger': currentBalance < 0,
-                    }"
-                    style="font-size: 2rem; font-weight: bold"
-                    >€</span
-                  >
                 </div>
-                <!-- Message d'alerte si le solde est négatif -->
-                <transition name="fade">
+                <div
+                  class="d-flex flex-column align-items-center justify-content-center w-100 mb-3"
+                >
                   <div
-                    v-if="currentBalance < 0"
-                    class="alert alert-danger mt-3 py-2 px-3"
-                    style="font-size: 1.1rem"
+                    class="d-flex align-items-center justify-content-center gap-3 w-100"
                   >
-                    Attention, votre solde est négatif !
+                    <i
+                      class="bi"
+                      :class="
+                        currentBalance >= 0
+                          ? 'bi-graph-up-arrow'
+                          : 'bi-graph-down-arrow'
+                      "
+                      :style="{
+                        fontSize: '2.5rem',
+                        color: currentBalance >= 0 ? '#10b981' : '#ef4444',
+                      }"
+                    ></i>
+                    <span
+                      :class="{
+                        'text-success': currentBalance >= 0,
+                        'text-danger': currentBalance < 0,
+                      }"
+                      style="font-size: 2.8rem; font-weight: bold"
+                      >{{ animatedBalance.toFixed(2) }}</span
+                    >
+                    <span
+                      :class="{
+                        'text-success': currentBalance >= 0,
+                        'text-danger': currentBalance < 0,
+                      }"
+                      style="font-size: 2rem; font-weight: bold"
+                      >€</span
+                    >
                   </div>
-                </transition>
-              </div>
-              <div class="d-flex justify-content-center w-100 gap-5 mt-2">
-                <div class="text-success d-flex flex-column align-items-center">
-                  <i
-                    class="bi bi-arrow-down-circle"
-                    style="font-size: 1.5rem"
-                  ></i>
-                  <div class="small">Revenus</div>
-                  <div class="fw-bold">+{{ currentIncome.toFixed(2) }} €</div>
+                  <!-- Message d'alerte si le solde est négatif -->
+                  <transition name="fade">
+                    <div
+                      v-if="currentBalance < 0"
+                      class="alert alert-danger mt-3 py-2 px-3"
+                      style="font-size: 1.1rem"
+                    >
+                      Attention, votre solde est négatif !
+                    </div>
+                  </transition>
                 </div>
-                <div class="text-danger d-flex flex-column align-items-center">
-                  <i
-                    class="bi bi-arrow-up-circle"
-                    style="font-size: 1.5rem"
-                  ></i>
-                  <div class="small">Dépenses</div>
-                  <div class="fw-bold">-{{ currentExpenses.toFixed(2) }} €</div>
+                <div class="d-flex justify-content-center w-100 gap-5 mt-2">
+                  <div
+                    class="text-success d-flex flex-column align-items-center"
+                  >
+                    <i
+                      class="bi bi-arrow-down-circle"
+                      style="font-size: 1.5rem"
+                    ></i>
+                    <div class="small">Revenus</div>
+                    <div class="fw-bold">+{{ currentIncome.toFixed(2) }} €</div>
+                  </div>
+                  <div
+                    class="text-danger d-flex flex-column align-items-center"
+                  >
+                    <i
+                      class="bi bi-arrow-up-circle"
+                      style="font-size: 1.5rem"
+                    ></i>
+                    <div class="small">Dépenses</div>
+                    <div class="fw-bold">
+                      -{{ currentExpenses.toFixed(2) }} €
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Formulaire d'ajout -->
-        <div class="col-md-8">
-          <div class="card h-100 shadow-sm p-4">
-            <div class="card-body">
-              <h2 class="h5 fw-semibold mb-4">Nouvelle transaction</h2>
-              <form @submit.prevent="addTransaction">
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label for="description" class="form-label"
-                      >Description</label
-                    >
-                    <input
-                      v-model="newTransaction.description"
-                      type="text"
-                      id="description"
-                      class="form-control"
-                      placeholder="Ex: Courses du week-end"
-                      required
-                    />
-                  </div>
-                  <div class="col-md-6">
-                    <label for="amount" class="form-label">Montant (€)</label>
-                    <div class="input-group">
-                      <span class="input-group-text">€</span>
+          <!-- Formulaire d'ajout -->
+          <div class="col-md-8">
+            <div class="card h-100 shadow-sm p-4">
+              <div class="card-body">
+                <h2 class="h5 fw-semibold mb-4">Nouvelle transaction</h2>
+                <form @submit.prevent="addTransaction">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label for="description" class="form-label"
+                        >Description</label
+                      >
                       <input
-                        v-model="newTransaction.amount"
-                        type="number"
-                        step="0.01"
-                        id="amount"
+                        v-model="newTransaction.description"
+                        type="text"
+                        id="description"
                         class="form-control"
-                        placeholder="0.00"
+                        placeholder="Ex: Courses du week-end"
                         required
                       />
                     </div>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="type" class="form-label">Type</label>
-                    <select
-                      v-model="newTransaction.type"
-                      id="type"
-                      class="form-select"
-                    >
-                      <option value="expense">Dépense</option>
-                      <option value="income">Revenu</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="category" class="form-label">Catégorie</label>
-                    <select
-                      v-model="newTransaction.categoryId"
-                      id="category"
-                      class="form-select"
-                    >
-                      <option
-                        v-for="category in transactionStore.categories"
-                        :key="category.id"
-                        :value="category.id"
-                      >
-                        <!-- <i class="bi me-2" :class="category.icon"></i> -->
-                        {{ category.name }}
-                      </option>
-                    </select>
-                  </div>
-                  <div class="col-12 mt-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                      <i class="bi bi-plus-circle me-2"></i>Ajouter la
-                      transaction
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Deuxième ligne : Graphiques -->
-      <!-- <div class="row g-4 mb-4">
-        <div class="col-md-12">
-          <div class="card p-4 h-100">
-            <canvas ref="chartRef" height="220"></canvas>
-          </div>
-        </div>
-      </div> -->
-
-      <!-- Troisième ligne : Astuce du jour et Résumé mensuel -->
-      <div class="row g-4 mb-4 justify-content-center">
-        <!-- Astuce du jour -->
-        <div class="col-md-6">
-          <div
-            class="alert alert-info text-center h-100 d-flex flex-column justify-content-center mb-0"
-            style="font-size: 1.05rem"
-          >
-            <i class="bi bi-lightbulb me-2"></i>
-            <strong>Astuce du jour :</strong> {{ tipOfTheDay }}
-          </div>
-        </div>
-        <!-- Résumé mensuel dynamique -->
-        <div class="col-md-6">
-          <div class="card p-4 text-center h-100 mb-0">
-            <div
-              class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2"
-            >
-              <button class="btn btn-outline-primary btn-sm" @click="prevMonth">
-                <i class="bi bi-chevron-left"></i>
-              </button>
-              <span class="fw-bold" style="font-size: 1.2rem"
-                >{{ monthNames[selectedMonth] }} {{ selectedYear }}</span
-              >
-              <button class="btn btn-outline-primary btn-sm" @click="nextMonth">
-                <i class="bi bi-chevron-right"></i>
-              </button>
-            </div>
-            <div class="d-flex justify-content-center gap-5 flex-wrap mb-2">
-              <div class="d-flex flex-column align-items-center">
-                <span class="text-muted">Revenus</span>
-                <span class="fw-bold text-success"
-                  >+{{ monthlyIncome.toFixed(2) }} €</span
-                >
-              </div>
-              <div class="d-flex flex-column align-items-center">
-                <span class="text-muted">Dépenses</span>
-                <span class="fw-bold text-danger"
-                  >-{{ monthlyExpenses.toFixed(2) }} €</span
-                >
-              </div>
-              <div class="d-flex flex-column align-items-center">
-                <span class="text-muted">Solde</span>
-                <span
-                  :class="{
-                    'text-success': monthlyBalance >= 0,
-                    'text-danger': monthlyBalance < 0,
-                  }"
-                  class="fw-bold"
-                  >{{ monthlyBalance.toFixed(2) }} €</span
-                >
-              </div>
-            </div>
-            <transition name="fade">
-              <div
-                v-if="encouragement"
-                class="alert alert-success mt-3"
-                style="font-size: 1.1rem"
-              >
-                {{ encouragement }}
-              </div>
-            </transition>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quatrième ligne : Liste des transactions -->
-      <div class="row mt-4">
-        <div class="col-12">
-          <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
-              <div
-                class="d-flex justify-content-between align-items-center flex-wrap gap-3"
-              >
-                <div class="d-flex align-items-center gap-3">
-                  <h2 class="h5 mb-0">
-                    <i class="bi bi-list-ul me-2"></i>Historique des
-                    transactions
-                  </h2>
-                  <!-- Badge de statistiques -->
-                  <div class="d-flex gap-2">
-                    <span class="badge bg-success bg-opacity-10 text-success">
-                      <i class="bi bi-arrow-down-circle me-1"></i>
-                      {{ filteredAndSortedIncomeTransactions.length }} revenus
-                    </span>
-                    <span class="badge bg-danger bg-opacity-10 text-danger">
-                      <i class="bi bi-arrow-up-circle me-1"></i>
-                      {{ filteredAndSortedExpenseTransactions.length }} dépenses
-                    </span>
-                  </div>
-                </div>
-                <!-- Contrôles de recherche, filtrage et tri -->
-                <div class="d-flex gap-2 flex-wrap">
-                  <!-- Barre de recherche -->
-                  <div class="input-group" style="min-width: 200px">
-                    <span class="input-group-text bg-light">
-                      <i class="bi bi-search"></i>
-                    </span>
-                    <input
-                      v-model="searchQuery"
-                      type="text"
-                      class="form-control"
-                      placeholder="Rechercher une transaction..."
-                    />
-                  </div>
-                  <!-- Filtres -->
-                  <div class="dropdown">
-                    <button
-                      class="btn btn-outline-secondary dropdown-toggle"
-                      type="button"
-                      data-bs-toggle="dropdown"
-                    >
-                      <i class="bi bi-funnel me-1"></i>Filtres
-                    </button>
-                    <div class="dropdown-menu p-3" style="width: 300px">
-                      <h6 class="dropdown-header">Filtres</h6>
-                      <div class="mb-3">
-                        <label class="form-label small">Date</label>
+                    <div class="col-md-6">
+                      <label for="amount" class="form-label">Montant (€)</label>
+                      <div class="input-group">
+                        <span class="input-group-text">€</span>
                         <input
-                          v-model="filterDate"
-                          type="date"
-                          class="form-control form-control-sm"
+                          v-model="newTransaction.amount"
+                          type="number"
+                          step="0.01"
+                          id="amount"
+                          class="form-control"
+                          placeholder="0.00"
+                          required
                         />
                       </div>
-                      <div class="mb-3">
-                        <label class="form-label small">Montant minimum</label>
-                        <div class="input-group input-group-sm">
-                          <span class="input-group-text">€</span>
-                          <input
-                            v-model="filterAmount"
-                            type="number"
-                            class="form-control"
-                            placeholder="0.00"
-                          />
-                        </div>
-                      </div>
-                      <div class="mb-3">
-                        <label class="form-label small">Catégorie</label>
-                        <select
-                          v-model="filterCategory"
-                          class="form-select form-select-sm"
+                    </div>
+                    <div class="col-md-6">
+                      <label for="type" class="form-label">Type</label>
+                      <select
+                        v-model="newTransaction.type"
+                        id="type"
+                        class="form-select"
+                      >
+                        <option value="expense">Dépense</option>
+                        <option value="income">Revenu</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="category" class="form-label">Catégorie</label>
+                      <select
+                        v-model="newTransaction.categoryId"
+                        id="category"
+                        class="form-select"
+                      >
+                        <option
+                          v-for="category in transactionStore.categories"
+                          :key="category.id"
+                          :value="category.id"
                         >
-                          <option value="">Toutes catégories</option>
-                          <option
-                            v-for="category in transactionStore.categories"
-                            :key="category.id"
-                            :value="category.id"
-                          >
-                            {{ category.name }}
-                          </option>
-                        </select>
-                      </div>
-                      <div class="d-flex justify-content-between">
-                        <button
-                          @click="resetFiltersAndSort"
-                          class="btn btn-sm btn-outline-secondary"
-                        >
-                          Réinitialiser
-                        </button>
-                        <button
-                          class="btn btn-sm btn-primary"
-                          data-bs-dismiss="dropdown"
-                        >
-                          Appliquer
-                        </button>
-                      </div>
+                          <!-- <i class="bi me-2" :class="category.icon"></i> -->
+                          {{ category.name }}
+                        </option>
+                      </select>
+                    </div>
+                    <div class="col-12 mt-2">
+                      <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-plus-circle me-2"></i>Ajouter la
+                        transaction
+                      </button>
                     </div>
                   </div>
-                  <!-- Tri -->
-                  <div class="dropdown">
-                    <button
-                      class="btn btn-outline-secondary dropdown-toggle"
-                      type="button"
-                      data-bs-toggle="dropdown"
-                    >
-                      <i class="bi bi-sort-down me-1"></i>Trier
-                    </button>
-                    <div class="dropdown-menu p-3">
-                      <h6 class="dropdown-header">Trier par</h6>
-                      <div class="mb-3">
-                        <select
-                          v-model="sortBy"
-                          class="form-select form-select-sm"
-                        >
-                          <option value="date">Date</option>
-                          <option value="amount">Montant</option>
-                          <option value="description">Description</option>
-                          <option value="category">Catégorie</option>
-                        </select>
-                      </div>
-                      <div class="mb-3">
-                        <div class="form-check">
-                          <input
-                            v-model="sortOrder"
-                            value="asc"
-                            type="radio"
-                            class="form-check-input"
-                            id="sortAsc"
-                          />
-                          <label class="form-check-label" for="sortAsc">
-                            Croissant
-                          </label>
-                        </div>
-                        <div class="form-check">
-                          <input
-                            v-model="sortOrder"
-                            value="desc"
-                            type="radio"
-                            class="form-check-input"
-                            id="sortDesc"
-                          />
-                          <label class="form-check-label" for="sortDesc">
-                            Décroissant
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                </form>
               </div>
             </div>
-            <div class="card-body p-0">
-              <!-- État vide -->
+          </div>
+        </div>
+
+        <!-- Ajout du dashboard graphique -->
+        <div class="row g-4 mb-4">
+          <div class="col-md-12">
+            <div class="card p-4 h-100">
+              <BudgetChart :data="chartData" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Deuxième ligne : Graphiques -->
+        <!-- <div class="row g-4 mb-4">
+          <div class="col-md-12">
+            <div class="card p-4 h-100">
+              <canvas ref="chartRef" height="220"></canvas>
+            </div>
+          </div>
+        </div> -->
+
+        <!-- Troisième ligne : Astuce du jour et Résumé mensuel -->
+        <div class="row g-4 mb-4 justify-content-center">
+          <!-- Astuce du jour -->
+          <div class="col-md-6">
+            <div
+              class="alert alert-info text-center h-100 d-flex flex-column justify-content-center mb-0"
+              style="font-size: 1.05rem"
+            >
+              <i class="bi bi-lightbulb me-2"></i>
+              <strong>Astuce du jour :</strong> {{ tipOfTheDay }}
+            </div>
+          </div>
+          <!-- Résumé mensuel dynamique -->
+          <div class="col-md-6">
+            <div class="card p-4 text-center h-100 mb-0">
               <div
-                v-if="filteredAndSortedTransactions.length === 0"
-                class="text-center py-5"
+                class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2"
               >
-                <div class="text-muted">
-                  <i class="bi bi-search fs-1 opacity-50"></i>
-                  <p class="mt-2 mb-0">Aucune transaction trouvée</p>
-                  <small class="text-muted"
-                    >Essayez de modifier vos critères de recherche</small
+                <button
+                  class="btn btn-outline-primary btn-sm"
+                  @click="prevMonth"
+                >
+                  <i class="bi bi-chevron-left"></i>
+                </button>
+                <span class="fw-bold" style="font-size: 1.2rem"
+                  >{{ monthNames[selectedMonth] }} {{ selectedYear }}</span
+                >
+                <button
+                  class="btn btn-outline-primary btn-sm"
+                  @click="nextMonth"
+                >
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+              <div class="d-flex justify-content-center gap-5 flex-wrap mb-2">
+                <div class="d-flex flex-column align-items-center">
+                  <span class="text-muted">Revenus</span>
+                  <span class="fw-bold text-success"
+                    >+{{ monthlyIncome.toFixed(2) }} €</span
+                  >
+                </div>
+                <div class="d-flex flex-column align-items-center">
+                  <span class="text-muted">Dépenses</span>
+                  <span class="fw-bold text-danger"
+                    >-{{ monthlyExpenses.toFixed(2) }} €</span
+                  >
+                </div>
+                <div class="d-flex flex-column align-items-center">
+                  <span class="text-muted">Solde</span>
+                  <span
+                    :class="{
+                      'text-success': monthlyBalance >= 0,
+                      'text-danger': monthlyBalance < 0,
+                    }"
+                    class="fw-bold"
+                    >{{ monthlyBalance.toFixed(2) }} €</span
                   >
                 </div>
               </div>
-              <!-- Liste des transactions -->
-              <div
-                v-if="
-                  filteredAndSortedIncomeTransactions.length > 0 ||
-                  filteredAndSortedExpenseTransactions.length > 0
-                "
-                class="transaction-list"
-              >
-                <!-- Revenus -->
+              <transition name="fade">
                 <div
-                  v-if="filteredAndSortedIncomeTransactions.length > 0"
-                  class="mb-4"
+                  v-if="encouragement"
+                  class="alert alert-success mt-3"
+                  style="font-size: 1.1rem"
                 >
-                  <div
-                    class="bg-success bg-opacity-10 p-3 d-flex justify-content-between align-items-center"
-                  >
-                    <h6 class="text-success fw-semibold mb-0">
-                      <i class="bi bi-arrow-down-circle me-2"></i>Revenus
-                    </h6>
-                    <span class="badge bg-success bg-opacity-25 text-success">
-                      {{ filteredAndSortedIncomeTransactions.length }}
-                    </span>
-                  </div>
-                  <ul class="list-group list-group-flush">
-                    <transition-group name="fade" tag="div">
-                      <li
-                        v-for="transaction in filteredAndSortedIncomeTransactions"
-                        :key="transaction.id"
-                        class="list-group-item list-group-item-action"
-                      >
-                        <div class="d-flex align-items-center w-100">
-                          <div
-                            class="bg-success bg-opacity-10 text-success rounded-circle p-2 me-3"
-                          >
-                            <i class="bi bi-arrow-down-circle fs-5"></i>
-                          </div>
-                          <div class="flex-grow-1 me-3">
-                            <div
-                              class="d-flex align-items-center text-muted small gap-2"
-                            >
-                              <span
-                                class="badge bg-success bg-opacity-10 text-success"
-                              >
-                                <i
-                                  class="bi me-1"
-                                  :class="
-                                    transactionStore.getCategoryById(
-                                      transaction.categoryId
-                                    ).icon
-                                  "
-                                ></i>
-                                {{
-                                  transactionStore.getCategoryById(
-                                    transaction.categoryId
-                                  ).name
-                                }}
-                              </span>
-                              <span class="mx-2">•</span>
-                              <span>{{
-                                new Date(transaction.date).toLocaleDateString(
-                                  "fr-FR",
-                                  {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  }
-                                )
-                              }}</span>
-                            </div>
-                          </div>
-                          <div class="d-flex align-items-center gap-3">
-                            <span class="text-success fw-bold"
-                              >+{{ transaction.amount.toFixed(2) }} €</span
-                            >
-                            <button
-                              @click="deleteTransaction(transaction.id)"
-                              class="btn btn-sm btn-link text-muted p-0"
-                              title="Supprimer"
-                            >
-                              <i class="bi bi-x-lg"></i>
-                            </button>
-                          </div>
-                        </div>
-                      </li>
-                    </transition-group>
-                  </ul>
+                  {{ encouragement }}
                 </div>
-                <!-- Dépenses -->
-                <div v-if="filteredAndSortedExpenseTransactions.length > 0">
-                  <div
-                    class="bg-danger bg-opacity-10 p-3 d-flex justify-content-between align-items-center"
-                  >
-                    <h6 class="text-danger fw-semibold mb-0">
-                      <i class="bi bi-arrow-up-circle me-2"></i>Dépenses
-                    </h6>
-                    <span class="badge bg-danger bg-opacity-25 text-danger">
-                      {{ filteredAndSortedExpenseTransactions.length }}
-                    </span>
+              </transition>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quatrième ligne : Liste des transactions -->
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="card shadow-sm">
+              <div class="card-header bg-white py-3">
+                <div
+                  class="d-flex justify-content-between align-items-center flex-wrap gap-3"
+                >
+                  <div class="d-flex align-items-center gap-3">
+                    <h2 class="h5 mb-0">
+                      <i class="bi bi-list-ul me-2"></i>Historique des
+                      transactions
+                    </h2>
+                    <!-- Badge de statistiques -->
+                    <div class="d-flex gap-2">
+                      <span class="badge bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-arrow-down-circle me-1"></i>
+                        {{ filteredAndSortedIncomeTransactions.length }} revenus
+                      </span>
+                      <span class="badge bg-danger bg-opacity-10 text-danger">
+                        <i class="bi bi-arrow-up-circle me-1"></i>
+                        {{ filteredAndSortedExpenseTransactions.length }}
+                        dépenses
+                      </span>
+                    </div>
                   </div>
-                  <ul class="list-group list-group-flush">
-                    <transition-group name="fade" tag="div">
-                      <li
-                        v-for="transaction in filteredAndSortedExpenseTransactions"
-                        :key="transaction.id"
-                        class="list-group-item list-group-item-action"
+                  <!-- Contrôles de recherche, filtrage et tri -->
+                  <div class="d-flex gap-2 flex-wrap">
+                    <!-- Barre de recherche -->
+                    <div class="input-group" style="min-width: 200px">
+                      <span class="input-group-text bg-light">
+                        <i class="bi bi-search"></i>
+                      </span>
+                      <input
+                        v-model="searchQuery"
+                        type="text"
+                        class="form-control"
+                        placeholder="Rechercher une transaction..."
+                      />
+                    </div>
+                    <!-- Filtres -->
+                    <div class="dropdown">
+                      <button
+                        class="btn btn-outline-secondary dropdown-toggle"
+                        type="button"
+                        data-bs-toggle="dropdown"
                       >
-                        <div class="d-flex align-items-center w-100">
-                          <div
-                            class="bg-danger bg-opacity-10 text-danger rounded-circle p-2 me-3"
+                        <i class="bi bi-funnel me-1"></i>Filtres
+                      </button>
+                      <div class="dropdown-menu p-3" style="width: 300px">
+                        <h6 class="dropdown-header">Filtres</h6>
+                        <div class="mb-3">
+                          <label class="form-label small">Date</label>
+                          <input
+                            v-model="filterDate"
+                            type="date"
+                            class="form-control form-control-sm"
+                          />
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label small"
+                            >Montant minimum</label
                           >
-                            <i class="bi bi-arrow-up-circle fs-5"></i>
-                          </div>
-                          <div class="flex-grow-1 me-3">
-                            <div
-                              class="d-flex align-items-center text-muted small gap-2"
-                            >
-                              <span
-                                class="badge bg-danger bg-opacity-10 text-danger"
-                              >
-                                <i
-                                  class="bi me-1"
-                                  :class="
-                                    transactionStore.getCategoryById(
-                                      transaction.categoryId
-                                    ).icon
-                                  "
-                                ></i>
-                                {{
-                                  transactionStore.getCategoryById(
-                                    transaction.categoryId
-                                  ).name
-                                }}
-                              </span>
-                              <span class="mx-2">•</span>
-                              <span>{{
-                                new Date(transaction.date).toLocaleDateString(
-                                  "fr-FR",
-                                  {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  }
-                                )
-                              }}</span>
-                            </div>
-                          </div>
-                          <div class="d-flex align-items-center gap-3">
-                            <span class="text-danger fw-bold"
-                              >-{{ transaction.amount.toFixed(2) }} €</span
-                            >
-                            <button
-                              @click="deleteTransaction(transaction.id)"
-                              class="btn btn-sm btn-link text-muted p-0"
-                              title="Supprimer"
-                            >
-                              <i class="bi bi-x-lg"></i>
-                            </button>
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text">€</span>
+                            <input
+                              v-model="filterAmount"
+                              type="number"
+                              class="form-control"
+                              placeholder="0.00"
+                            />
                           </div>
                         </div>
-                      </li>
-                    </transition-group>
-                  </ul>
+                        <div class="mb-3">
+                          <label class="form-label small">Catégorie</label>
+                          <select
+                            v-model="filterCategory"
+                            class="form-select form-select-sm"
+                          >
+                            <option value="">Toutes catégories</option>
+                            <option
+                              v-for="category in transactionStore.categories"
+                              :key="category.id"
+                              :value="category.id"
+                            >
+                              {{ category.name }}
+                            </option>
+                          </select>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                          <button
+                            @click="resetFiltersAndSort"
+                            class="btn btn-sm btn-outline-secondary"
+                          >
+                            Réinitialiser
+                          </button>
+                          <button
+                            class="btn btn-sm btn-primary"
+                            data-bs-dismiss="dropdown"
+                          >
+                            Appliquer
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Tri -->
+                    <div class="dropdown">
+                      <button
+                        class="btn btn-outline-secondary dropdown-toggle"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                      >
+                        <i class="bi bi-sort-down me-1"></i>Trier
+                      </button>
+                      <div class="dropdown-menu p-3">
+                        <h6 class="dropdown-header">Trier par</h6>
+                        <div class="mb-3">
+                          <select
+                            v-model="sortBy"
+                            class="form-select form-select-sm"
+                          >
+                            <option value="date">Date</option>
+                            <option value="amount">Montant</option>
+                            <option value="description">Description</option>
+                            <option value="category">Catégorie</option>
+                          </select>
+                        </div>
+                        <div class="mb-3">
+                          <div class="form-check">
+                            <input
+                              v-model="sortOrder"
+                              value="asc"
+                              type="radio"
+                              class="form-check-input"
+                              id="sortAsc"
+                            />
+                            <label class="form-check-label" for="sortAsc">
+                              Croissant
+                            </label>
+                          </div>
+                          <div class="form-check">
+                            <input
+                              v-model="sortOrder"
+                              value="desc"
+                              type="radio"
+                              class="form-check-input"
+                              id="sortDesc"
+                            />
+                            <label class="form-check-label" for="sortDesc">
+                              Décroissant
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <!-- État vide -->
+                <div
+                  v-if="filteredAndSortedTransactions.length === 0"
+                  class="text-center py-5"
+                >
+                  <div class="text-muted">
+                    <i class="bi bi-search fs-1 opacity-50"></i>
+                    <p class="mt-2 mb-0">Aucune transaction trouvée</p>
+                    <small class="text-muted"
+                      >Essayez de modifier vos critères de recherche</small
+                    >
+                  </div>
+                </div>
+                <!-- Liste des transactions -->
+                <div
+                  v-if="
+                    filteredAndSortedIncomeTransactions.length > 0 ||
+                    filteredAndSortedExpenseTransactions.length > 0
+                  "
+                  class="transaction-list"
+                >
+                  <!-- Revenus -->
+                  <div
+                    v-if="filteredAndSortedIncomeTransactions.length > 0"
+                    class="mb-4"
+                  >
+                    <div
+                      class="bg-success bg-opacity-10 p-3 d-flex justify-content-between align-items-center"
+                    >
+                      <h6 class="text-success fw-semibold mb-0">
+                        <i class="bi bi-arrow-down-circle me-2"></i>Revenus
+                      </h6>
+                      <span class="badge bg-success bg-opacity-25 text-success">
+                        {{ filteredAndSortedIncomeTransactions.length }}
+                      </span>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                      <transition-group name="fade" tag="div">
+                        <li
+                          v-for="transaction in filteredAndSortedIncomeTransactions"
+                          :key="transaction.id"
+                          class="list-group-item list-group-item-action"
+                        >
+                          <div class="d-flex align-items-center w-100">
+                            <div
+                              class="bg-success bg-opacity-10 text-success rounded-circle p-2 me-3"
+                            >
+                              <i class="bi bi-arrow-down-circle fs-5"></i>
+                            </div>
+                            <div class="flex-grow-1 me-3">
+                              <div
+                                class="d-flex align-items-center text-muted small gap-2"
+                              >
+                                <span
+                                  class="badge bg-success bg-opacity-10 text-success"
+                                >
+                                  <i
+                                    class="bi me-1"
+                                    :class="
+                                      transactionStore.getCategoryById(
+                                        transaction.categoryId
+                                      ).icon
+                                    "
+                                  ></i>
+                                  {{
+                                    transactionStore.getCategoryById(
+                                      transaction.categoryId
+                                    ).name
+                                  }}
+                                </span>
+                                <span class="mx-2">•</span>
+                                <span>{{
+                                  new Date(transaction.date).toLocaleDateString(
+                                    "fr-FR",
+                                    {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    }
+                                  )
+                                }}</span>
+                              </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                              <span class="text-success fw-bold"
+                                >+{{ transaction.amount.toFixed(2) }} €</span
+                              >
+                              <button
+                                @click="deleteTransaction(transaction.id)"
+                                class="btn btn-sm btn-link text-muted p-0"
+                                title="Supprimer"
+                              >
+                                <i class="bi bi-x-lg"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                      </transition-group>
+                    </ul>
+                  </div>
+                  <!-- Dépenses -->
+                  <div v-if="filteredAndSortedExpenseTransactions.length > 0">
+                    <div
+                      class="bg-danger bg-opacity-10 p-3 d-flex justify-content-between align-items-center"
+                    >
+                      <h6 class="text-danger fw-semibold mb-0">
+                        <i class="bi bi-arrow-up-circle me-2"></i>Dépenses
+                      </h6>
+                      <span class="badge bg-danger bg-opacity-25 text-danger">
+                        {{ filteredAndSortedExpenseTransactions.length }}
+                      </span>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                      <transition-group name="fade" tag="div">
+                        <li
+                          v-for="transaction in filteredAndSortedExpenseTransactions"
+                          :key="transaction.id"
+                          class="list-group-item list-group-item-action"
+                        >
+                          <div class="d-flex align-items-center w-100">
+                            <div
+                              class="bg-danger bg-opacity-10 text-danger rounded-circle p-2 me-3"
+                            >
+                              <i class="bi bi-arrow-up-circle fs-5"></i>
+                            </div>
+                            <div class="flex-grow-1 me-3">
+                              <div
+                                class="d-flex align-items-center text-muted small gap-2"
+                              >
+                                <span
+                                  class="badge bg-danger bg-opacity-10 text-danger"
+                                >
+                                  <i
+                                    class="bi me-1"
+                                    :class="
+                                      transactionStore.getCategoryById(
+                                        transaction.categoryId
+                                      ).icon
+                                    "
+                                  ></i>
+                                  {{
+                                    transactionStore.getCategoryById(
+                                      transaction.categoryId
+                                    ).name
+                                  }}
+                                </span>
+                                <span class="mx-2">•</span>
+                                <span>{{
+                                  new Date(transaction.date).toLocaleDateString(
+                                    "fr-FR",
+                                    {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    }
+                                  )
+                                }}</span>
+                              </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                              <span class="text-danger fw-bold"
+                                >-{{ transaction.amount.toFixed(2) }} €</span
+                              >
+                              <button
+                                @click="deleteTransaction(transaction.id)"
+                                class="btn btn-sm btn-link text-muted p-0"
+                                title="Supprimer"
+                              >
+                                <i class="bi bi-x-lg"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                      </transition-group>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Canvas pour les confettis (plein écran, pointer-events none) -->
-      <canvas
-        ref="confettiCanvas"
-        style="
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          pointer-events: none;
-          z-index: 2000;
-        "
-      ></canvas>
+        <!-- Canvas pour les confettis (plein écran, pointer-events none) -->
+        <canvas
+          ref="confettiCanvas"
+          style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 2000;
+          "
+        ></canvas>
+      </div>
+    </div>
+    <!-- Bouton flottant d'ajout rapide -->
+    <button class="fab" @click="openModal">
+      <i class="bi bi-plus-lg"></i>
+    </button>
+    <!-- Modale d'ajout rapide -->
+    <div
+      v-if="showModal"
+      class="modal-backdrop-custom"
+      @click.self="closeModal"
+    >
+      <div class="modal-custom card p-4">
+        <button
+          class="btn-close ms-auto mb-2"
+          @click="closeModal"
+          aria-label="Fermer"
+        ></button>
+        <h2 class="h5 fw-semibold mb-4">Nouvelle transaction</h2>
+        <form
+          @submit.prevent="
+            addTransaction;
+            closeModal();
+          "
+        >
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="description-modal" class="form-label"
+                >Description</label
+              >
+              <input
+                v-model="newTransaction.description"
+                type="text"
+                id="description-modal"
+                class="form-control"
+                placeholder="Ex: Courses du week-end"
+                required
+              />
+            </div>
+            <div class="col-12">
+              <label for="amount-modal" class="form-label">Montant (€)</label>
+              <div class="input-group">
+                <span class="input-group-text">€</span>
+                <input
+                  v-model="newTransaction.amount"
+                  type="number"
+                  step="0.01"
+                  id="amount-modal"
+                  class="form-control"
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </div>
+            <div class="col-12">
+              <label for="type-modal" class="form-label">Type</label>
+              <select
+                v-model="newTransaction.type"
+                id="type-modal"
+                class="form-select"
+              >
+                <option value="expense">Dépense</option>
+                <option value="income">Revenu</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label for="category-modal" class="form-label">Catégorie</label>
+              <select
+                v-model="newTransaction.categoryId"
+                id="category-modal"
+                class="form-select"
+              >
+                <option
+                  v-for="category in transactionStore.categories"
+                  :key="category.id"
+                  :value="category.id"
+                >
+                  {{ category.name }}
+                </option>
+              </select>
+            </div>
+            <div class="col-12 mt-2">
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-plus-circle me-2"></i>Ajouter la transaction
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -1278,5 +1365,93 @@ body,
 .list-group-item .gap-3.ms-auto {
   display: flex;
   align-items: center;
+}
+
+/* Styles pour le mode sombre */
+.dark {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+.dark .card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.dark .btn {
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
+.dark .btn:hover {
+  background-color: #2c2c2c;
+}
+
+.dark .list-group-item {
+  background-color: #1e1e1e;
+  border-color: #333;
+}
+
+.dark .badge {
+  background-color: #333;
+  color: #fff;
+}
+
+.dark .dropdown-menu {
+  background-color: #1e1e1e;
+  border-color: #333;
+}
+
+.dark .form-control {
+  background-color: #2c2c2c;
+  color: #fff;
+  border: 1px solid #444;
+}
+
+.dark .form-control:focus {
+  background-color: #333;
+  border-color: #007bff;
+}
+
+.dark .alert {
+  background-color: #333;
+  color: #fff;
+  border-color: #444;
+}
+
+/* Modale d'ajout rapide */
+.modal-backdrop-custom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-custom {
+  max-width: 400px;
+  width: 100%;
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  background: #fff;
+  position: relative;
+}
+.dark .modal-custom {
+  background: #23232b;
+  color: #fff;
+}
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #888;
+  cursor: pointer;
+}
+.btn-close:hover {
+  color: #e11d48;
 }
 </style>
