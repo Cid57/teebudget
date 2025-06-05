@@ -807,11 +807,26 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
               <div
                 class="d-flex justify-content-between align-items-center flex-wrap gap-3"
               >
-                <h2 class="h5 mb-0">
-                  <i class="bi bi-list-ul me-2"></i>Historique des transactions
-                </h2>
+                <div class="d-flex align-items-center gap-3">
+                  <h2 class="h5 mb-0">
+                    <i class="bi bi-list-ul me-2"></i>Historique des
+                    transactions
+                  </h2>
+                  <!-- Badge de statistiques -->
+                  <div class="d-flex gap-2">
+                    <span class="badge bg-success bg-opacity-10 text-success">
+                      <i class="bi bi-arrow-down-circle me-1"></i>
+                      {{ filteredAndSortedIncomeTransactions.length }} revenus
+                    </span>
+                    <span class="badge bg-danger bg-opacity-10 text-danger">
+                      <i class="bi bi-arrow-up-circle me-1"></i>
+                      {{ filteredAndSortedExpenseTransactions.length }} dépenses
+                    </span>
+                  </div>
+                </div>
                 <!-- Contrôles de recherche, filtrage et tri -->
                 <div class="d-flex gap-2 flex-wrap">
+                  <!-- Barre de recherche -->
                   <div class="input-group" style="min-width: 200px">
                     <span class="input-group-text bg-light">
                       <i class="bi bi-search"></i>
@@ -820,73 +835,122 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                       v-model="searchQuery"
                       type="text"
                       class="form-control"
-                      placeholder="Rechercher..."
+                      placeholder="Rechercher une transaction..."
                     />
                   </div>
-                  <input
-                    v-model="filterDate"
-                    type="date"
-                    class="form-control"
-                    style="max-width: 150px"
-                  />
-                  <input
-                    v-model="filterAmount"
-                    type="number"
-                    class="form-control"
-                    placeholder="Montant min"
-                    style="max-width: 150px"
-                  />
-                  <select
-                    v-model="filterCategory"
-                    class="form-select"
-                    style="max-width: 200px"
-                  >
-                    <option value="">Toutes catégories</option>
-                    <option
-                      v-for="category in transactionStore.categories"
-                      :key="category.id"
-                      :value="category.id"
+                  <!-- Filtres -->
+                  <div class="dropdown">
+                    <button
+                      class="btn btn-outline-secondary dropdown-toggle"
+                      type="button"
+                      data-bs-toggle="dropdown"
                     >
-                      <!-- <i class="bi me-2" :class="category.icon"></i> -->
-                      {{ category.name }}
-                    </option>
-                  </select>
-
-                  <!-- Contrôles de tri -->
-                  <select
-                    v-model="sortBy"
-                    class="form-select"
-                    style="max-width: 150px"
-                  >
-                    <option value="date">Trier par date</option>
-                    <option value="amount">Trier par montant</option>
-                    <option value="description">Trier par description</option>
-                    <option value="category">Trier par catégorie</option>
-                  </select>
-                  <button
-                    @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-                    class="btn btn-outline-secondary"
-                    :title="
-                      sortOrder === 'asc'
-                        ? 'Trier par ordre décroissant'
-                        : 'Trier par ordre croissant'
-                    "
-                  >
-                    <i
-                      class="bi"
-                      :class="
-                        sortOrder === 'asc' ? 'bi-sort-down' : 'bi-sort-up'
-                      "
-                    ></i>
-                  </button>
-
-                  <button
-                    @click="resetFiltersAndSort"
-                    class="btn btn-outline-secondary"
-                    title="Réinitialiser les filtres"
-                  >
-                    <i class="bi bi-x-lg"></i>
-                  </button>
+                      <i class="bi bi-funnel me-1"></i>Filtres
+                    </button>
+                    <div class="dropdown-menu p-3" style="width: 300px">
+                      <h6 class="dropdown-header">Filtres</h6>
+                      <div class="mb-3">
+                        <label class="form-label small">Date</label>
+                        <input
+                          v-model="filterDate"
+                          type="date"
+                          class="form-control form-control-sm"
+                        />
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label small">Montant minimum</label>
+                        <div class="input-group input-group-sm">
+                          <span class="input-group-text">€</span>
+                          <input
+                            v-model="filterAmount"
+                            type="number"
+                            class="form-control"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label small">Catégorie</label>
+                        <select
+                          v-model="filterCategory"
+                          class="form-select form-select-sm"
+                        >
+                          <option value="">Toutes catégories</option>
+                          <option
+                            v-for="category in transactionStore.categories"
+                            :key="category.id"
+                            :value="category.id"
+                          >
+                            {{ category.name }}
+                          </option>
+                        </select>
+                      </div>
+                      <div class="d-flex justify-content-between">
+                        <button
+                          @click="resetFiltersAndSort"
+                          class="btn btn-sm btn-outline-secondary"
+                        >
+                          Réinitialiser
+                        </button>
+                        <button
+                          class="btn btn-sm btn-primary"
+                          data-bs-dismiss="dropdown"
+                        >
+                          Appliquer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Tri -->
+                  <div class="dropdown">
+                    <button
+                      class="btn btn-outline-secondary dropdown-toggle"
+                      type="button"
+                      data-bs-toggle="dropdown"
+                    >
+                      <i class="bi bi-sort-down me-1"></i>Trier
+                    </button>
+                    <div class="dropdown-menu p-3">
+                      <h6 class="dropdown-header">Trier par</h6>
+                      <div class="mb-3">
+                        <select
+                          v-model="sortBy"
+                          class="form-select form-select-sm"
+                        >
+                          <option value="date">Date</option>
+                          <option value="amount">Montant</option>
+                          <option value="description">Description</option>
+                          <option value="category">Catégorie</option>
+                        </select>
+                      </div>
+                      <div class="mb-3">
+                        <div class="form-check">
+                          <input
+                            v-model="sortOrder"
+                            value="asc"
+                            type="radio"
+                            class="form-check-input"
+                            id="sortAsc"
+                          />
+                          <label class="form-check-label" for="sortAsc">
+                            Croissant
+                          </label>
+                        </div>
+                        <div class="form-check">
+                          <input
+                            v-model="sortOrder"
+                            value="desc"
+                            type="radio"
+                            class="form-check-input"
+                            id="sortDesc"
+                          />
+                          <label class="form-check-label" for="sortDesc">
+                            Décroissant
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -910,32 +974,29 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                   filteredAndSortedIncomeTransactions.length > 0 ||
                   filteredAndSortedExpenseTransactions.length > 0
                 "
+                class="transaction-list"
               >
                 <!-- Revenus -->
                 <div
                   v-if="filteredAndSortedIncomeTransactions.length > 0"
                   class="mb-4"
                 >
-                  <h6 class="text-success fw-semibold mb-3">
-                    <i class="bi bi-arrow-down-circle me-3"></i>Revenus
-                    <span
-                      class="badge bg-success bg-opacity-10 text-success ms-3"
-                      >{{ filteredAndSortedIncomeTransactions.length }}</span
-                    >
-                  </h6>
-                  <ul class="list-group list-group-flush mb-4">
+                  <div
+                    class="bg-success bg-opacity-10 p-3 d-flex justify-content-between align-items-center"
+                  >
+                    <h6 class="text-success fw-semibold mb-0">
+                      <i class="bi bi-arrow-down-circle me-2"></i>Revenus
+                    </h6>
+                    <span class="badge bg-success bg-opacity-25 text-success">
+                      {{ filteredAndSortedIncomeTransactions.length }}
+                    </span>
+                  </div>
+                  <ul class="list-group list-group-flush">
                     <transition-group name="fade" tag="div">
                       <li
-                        v-for="(
-                          transaction, idx
-                        ) in filteredAndSortedIncomeTransactions"
+                        v-for="transaction in filteredAndSortedIncomeTransactions"
                         :key="transaction.id"
                         class="list-group-item list-group-item-action"
-                        :class="{
-                          'border-bottom':
-                            idx !==
-                            filteredAndSortedIncomeTransactions.length - 1,
-                        }"
                       >
                         <div class="d-flex align-items-center w-100">
                           <div
@@ -943,22 +1004,12 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                           >
                             <i class="bi bi-arrow-down-circle fs-5"></i>
                           </div>
-                          <div
-                            class="flex-grow-1 me-3 d-flex flex-column justify-content-center"
-                          >
-                            <h6 class="mb-0 fw-semibold">
-                              {{ transaction.description }}
-                            </h6>
+                          <div class="flex-grow-1 me-3">
                             <div
                               class="d-flex align-items-center text-muted small gap-2"
                             >
                               <span
-                                class="badge"
-                                :class="
-                                  transaction.type === 'income'
-                                    ? 'bg-success bg-opacity-10 text-success'
-                                    : 'bg-danger bg-opacity-10 text-danger'
-                                "
+                                class="badge bg-success bg-opacity-10 text-success"
                               >
                                 <i
                                   class="bi me-1"
@@ -972,8 +1023,8 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                                   transactionStore.getCategoryById(
                                     transaction.categoryId
                                   ).name
-                                }}</span
-                              >
+                                }}
+                              </span>
                               <span class="mx-2">•</span>
                               <span>{{
                                 new Date(transaction.date).toLocaleDateString(
@@ -987,8 +1038,7 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                               }}</span>
                             </div>
                           </div>
-                          <!-- Montant et bouton de suppression -->
-                          <div class="d-flex align-items-center gap-3 ms-auto">
+                          <div class="d-flex align-items-center gap-3">
                             <span class="text-success fw-bold"
                               >+{{ transaction.amount.toFixed(2) }} €</span
                             >
@@ -1007,26 +1057,22 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                 </div>
                 <!-- Dépenses -->
                 <div v-if="filteredAndSortedExpenseTransactions.length > 0">
-                  <h6 class="text-danger fw-semibold mb-3">
-                    <i class="bi bi-arrow-up-circle me-3"></i>Dépenses
-                    <span
-                      class="badge bg-danger bg-opacity-10 text-danger ms-3"
-                      >{{ filteredAndSortedExpenseTransactions.length }}</span
-                    >
-                  </h6>
+                  <div
+                    class="bg-danger bg-opacity-10 p-3 d-flex justify-content-between align-items-center"
+                  >
+                    <h6 class="text-danger fw-semibold mb-0">
+                      <i class="bi bi-arrow-up-circle me-2"></i>Dépenses
+                    </h6>
+                    <span class="badge bg-danger bg-opacity-25 text-danger">
+                      {{ filteredAndSortedExpenseTransactions.length }}
+                    </span>
+                  </div>
                   <ul class="list-group list-group-flush">
                     <transition-group name="fade" tag="div">
                       <li
-                        v-for="(
-                          transaction, idx
-                        ) in filteredAndSortedExpenseTransactions"
+                        v-for="transaction in filteredAndSortedExpenseTransactions"
                         :key="transaction.id"
                         class="list-group-item list-group-item-action"
-                        :class="{
-                          'border-bottom':
-                            idx !==
-                            filteredAndSortedExpenseTransactions.length - 1,
-                        }"
                       >
                         <div class="d-flex align-items-center w-100">
                           <div
@@ -1034,22 +1080,12 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                           >
                             <i class="bi bi-arrow-up-circle fs-5"></i>
                           </div>
-                          <div
-                            class="flex-grow-1 me-3 d-flex flex-column justify-content-center"
-                          >
-                            <h6 class="mb-0 fw-semibold">
-                              {{ transaction.description }}
-                            </h6>
+                          <div class="flex-grow-1 me-3">
                             <div
                               class="d-flex align-items-center text-muted small gap-2"
                             >
                               <span
-                                class="badge"
-                                :class="
-                                  transaction.type === 'income'
-                                    ? 'bg-success bg-opacity-10 text-success'
-                                    : 'bg-danger bg-opacity-10 text-danger'
-                                "
+                                class="badge bg-danger bg-opacity-10 text-danger"
                               >
                                 <i
                                   class="bi me-1"
@@ -1063,8 +1099,8 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                                   transactionStore.getCategoryById(
                                     transaction.categoryId
                                   ).name
-                                }}</span
-                              >
+                                }}
+                              </span>
                               <span class="mx-2">•</span>
                               <span>{{
                                 new Date(transaction.date).toLocaleDateString(
@@ -1078,8 +1114,7 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                               }}</span>
                             </div>
                           </div>
-                          <!-- Montant et bouton de suppression -->
-                          <div class="d-flex align-items-center gap-3 ms-auto">
+                          <div class="d-flex align-items-center gap-3">
                             <span class="text-danger fw-bold"
                               >-{{ transaction.amount.toFixed(2) }} €</span
                             >
@@ -1095,16 +1130,6 @@ const tipOfTheDay = ref(tips[Math.floor(Math.random() * tips.length)]);
                       </li>
                     </transition-group>
                   </ul>
-                </div>
-              </div>
-              <!-- État vide -->
-              <div v-else class="text-center py-5">
-                <div class="text-muted">
-                  <i class="bi bi-receipt fs-1 opacity-50"></i>
-                  <p class="mt-2 mb-0">Aucune transaction enregistrée</p>
-                  <small class="text-muted"
-                    >Ajoutez votre première transaction pour commencer</small
-                  >
                 </div>
               </div>
             </div>
@@ -1158,5 +1183,87 @@ body,
 .fade-leave-to {
   opacity: 0;
   transform: translateY(20px);
+}
+.transaction-list {
+  max-height: 600px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.transaction-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.transaction-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.transaction-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.transaction-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.list-group-item {
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.list-group-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.badge {
+  font-weight: 500;
+  padding: 0.5em 0.8em;
+}
+
+.dropdown-menu {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Styles pour améliorer l'alignement à l'intérieur de chaque transaction */
+.list-group-item .d-flex.align-items-center.w-100 {
+  align-items: center;
+}
+
+.list-group-item .flex-grow-1 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin-right: 1rem;
+}
+
+.list-group-item h6 {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2;
+}
+
+.list-group-item .d-flex.align-items-center.text-muted.small.gap-2 {
+  align-items: center;
+  margin-top: 0.1rem;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+}
+
+.list-group-item .rounded-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.list-group-item .gap-3.ms-auto {
+  display: flex;
+  align-items: center;
 }
 </style>
